@@ -6,10 +6,14 @@ public class NntpResponseFactoryImpl implements NntpResponseFactory {
         NntpResponse response;
         switch(type) {
             case WELCOME:
-                response = new NntpWelcomeResponse();
+            case AUTHINFO:
+                response = new NntpGenericResponse();
                 break;
             case DATE:
                 response = new NntpDateResponse();
+                break;
+            case LIST:
+                response = new NntpListResponse();
                 break;
             default:
                 return null;

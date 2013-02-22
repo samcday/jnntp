@@ -1,5 +1,6 @@
 package au.com.samcday.jnntp;
 
+import au.com.samcday.jnntp.exceptions.NntpClientAuthenticationException;
 import au.com.samcday.jnntp.exceptions.NntpClientConnectionError;
 
 public class NntpClientBuilder {
@@ -27,7 +28,7 @@ public class NntpClientBuilder {
         return this;
     }
 
-    public NntpClient build() throws NntpClientConnectionError {
+    public NntpClient build() throws NntpClientConnectionError, NntpClientAuthenticationException {
         NntpClient client = new NntpClient(this.host, this.port);
 
         client.connect();

@@ -1,7 +1,6 @@
 package au.com.samcday.jnntp;
 
-import au.com.samcday.jnntp.exceptions.NntpClientConnectionError;
-import au.com.samcday.jnntp.exceptions.NntpServerUnavailableException;
+import au.com.samcday.jnntp.exceptions.*;
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.Futures;
 import org.jboss.netty.bootstrap.ClientBootstrap;
@@ -15,6 +14,7 @@ import org.jboss.netty.handler.codec.string.StringEncoder;
 
 import java.net.InetSocketAddress;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 
@@ -34,7 +34,7 @@ public class NntpClient {
 
     public void connect() throws NntpClientConnectionError {
         // We'll be waiting for the connection message.
-        NntpFuture<NntpWelcomeResponse> welcomeFuture = new NntpFuture<>(NntpResponse.ResponseType.WELCOME);
+        NntpFuture<NntpGenericResponse> welcomeFuture = new NntpFuture<>(NntpResponse.ResponseType.WELCOME);
         this.pipeline.add(welcomeFuture);
 
         // Connect to the server now.
@@ -44,7 +44,7 @@ public class NntpClient {
         }
         this.channel = future.getChannel();
 
-        NntpWelcomeResponse response = Futures.getUnchecked(welcomeFuture);
+        NntpGenericResponse response = Futures.getUnchecked(welcomeFuture);
         boolean temporarilyUnavailable = false;
         switch(response.getCode()) {
             case 200:
@@ -77,8 +77,27 @@ public class NntpClient {
         return bootstrap.connect(addr).awaitUninterruptibly();
     }
 
-    public void authenticate(String username, String password) {
+    public void authenticate(String username, String password) throws NntpClientAuthenticationException {
+        NntpFuture<NntpGenericResponse> future = this.sendCommand(NntpResponse.ResponseType.AUTHINFO, "USER", username);
+        NntpGenericResponse resp = Futures.getUnchecked(future);
+        if(resp.getCode() == 281) {
+            // Well ... that was easy.
+            return;
+        }
 
+        if(resp.getCode() == 381) {
+            future = this.sendCommand(NntpResponse.ResponseType.AUTHINFO, "PASS", password);
+            resp = Futures.getUnchecked(future);
+            if(resp.getCode() == 281) {
+                return;
+            }
+
+            if(resp.getCode() == 481) {
+                throw new NntpClientAuthenticationException(new NntpInvalidLoginException());
+            }
+        }
+
+        throw new NntpClientAuthenticationException(new NntpClientException("Unknown login error."));
     }
 
     /**
@@ -91,11 +110,22 @@ public class NntpClient {
         return response.getDate();
     }
 
-    private <T extends NntpResponse> NntpFuture<T> sendCommand(NntpResponse.ResponseType type) {
+    public List<GroupListItem> list() {
+        NntpFuture<NntpListResponse> future = this.sendCommand(NntpResponse.ResponseType.LIST);
+        NntpListResponse response = Futures.getUnchecked(future);
+        return response.getItems();
+    }
+
+    private <T extends NntpResponse> NntpFuture<T> sendCommand(NntpResponse.ResponseType type, String... args) {
         NntpFuture future = new NntpFuture(type);
         synchronized (this.channel) {
             this.pipeline.add(future);
-            this.channel.write(type.name() + "\r\n");
+            this.channel.write(type.name());
+            for(int i = 0; i < args.length; i++) {
+                this.channel.write(" ");
+                this.channel.write(args[i]);
+            }
+            this.channel.write("\r\n");
         }
 
         return future;

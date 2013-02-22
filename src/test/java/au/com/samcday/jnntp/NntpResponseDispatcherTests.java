@@ -32,7 +32,7 @@ public class NntpResponseDispatcherTests {
     @Test
     public void testBasicDecode() {
         when(this.mockPipelinePeeker.peekType()).thenReturn(NntpResponse.ResponseType.WELCOME);
-        when(this.mockResponseFactory.newResponse(NntpResponse.ResponseType.WELCOME)).thenReturn(new NntpWelcomeResponse());
+        when(this.mockResponseFactory.newResponse(NntpResponse.ResponseType.WELCOME)).thenReturn(new NntpGenericResponse());
 
         assertTrue(this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer("200 This is a simple response", Charsets.UTF_8)));
         assertTrue(this.decoderEmbedder.finish());
@@ -78,7 +78,7 @@ public class NntpResponseDispatcherTests {
         doAnswer(new Answer<Void>() {
             @Override
             public Void answer(InvocationOnMock invocationOnMock) throws Throwable {
-                lines.add(((ChannelBuffer)invocationOnMock.getArguments()[0]) .toString(Charsets.UTF_8));
+                lines.add(((ChannelBuffer) invocationOnMock.getArguments()[0]).toString(Charsets.UTF_8));
                 return null;
             }
         }).when(mockResponse).processLine(any(ChannelBuffer.class));

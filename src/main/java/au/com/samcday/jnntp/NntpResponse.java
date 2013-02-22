@@ -29,6 +29,8 @@ public abstract class NntpResponse {
 
     public static enum ResponseType {
         WELCOME,
-        DATE;
+        AUTHINFO,
+        DATE,
+        LIST;
     }
 }
