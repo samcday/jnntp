@@ -17,6 +17,17 @@ public abstract class NntpResponse {
 
     public static enum ResponseType {
         WELCOME,
-        DATE
+        DATE;
+
+        public NntpResponse construct(int code) {
+            switch(this) {
+                case WELCOME:
+                    return new NntpWelcomeResponse(code);
+                case DATE:
+                    return new NntpDateResponse(code);
+                default:
+                    return null;
+            }
+        }
     }
 }

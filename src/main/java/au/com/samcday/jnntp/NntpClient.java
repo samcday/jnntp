@@ -22,20 +22,20 @@ public class NntpClient {
     private String host;
     private int port;
     private Channel channel;
-    private ConcurrentLinkedQueue<NntpFuture<?>> responseQueue;
+    private ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
     private boolean canPost;
 
     public NntpClient(String host, int port) {
         this.host = host;
         this.port = port;
 
-        this.responseQueue = new ConcurrentLinkedQueue<>();
+        this.pipeline = new ConcurrentLinkedQueue<>();
     }
 
     public void connect() throws NntpClientConnectionError {
         // We'll be waiting for the connection message.
         NntpFuture<NntpWelcomeResponse> welcomeFuture = new NntpFuture<>(NntpResponse.ResponseType.WELCOME);
-        this.responseQueue.add(welcomeFuture);
+        this.pipeline.add(welcomeFuture);
 
         // Connect to the server now.
         ChannelFuture future = this.initializeChannel(new InetSocketAddress(this.host, this.port));
@@ -67,7 +67,12 @@ public class NntpClient {
             Executors.newCachedThreadPool()
         );
         ClientBootstrap bootstrap = new ClientBootstrap(factory);
-        bootstrap.setPipeline(Channels.pipeline(new StringEncoder(Charsets.UTF_8), new LineBasedFrameDecoder(4096), new NntpResponseDecoder(responseQueue)));
+        bootstrap.setPipeline(Channels.pipeline(
+            new StringEncoder(Charsets.UTF_8),
+            new LineBasedFrameDecoder(4096),
+            new NntpResponseDecoder(new CommandPipelinePeekerImpl(pipeline)),
+            new NntpResponseDispatcher(pipeline)
+        ));
 
         return bootstrap.connect(addr).awaitUninterruptibly();
     }
@@ -89,7 +94,7 @@ public class NntpClient {
     private <T extends NntpResponse> NntpFuture<T> sendCommand(NntpResponse.ResponseType type) {
         NntpFuture future = new NntpFuture(type);
         synchronized (this.channel) {
-            this.responseQueue.add(future);
+            this.pipeline.add(future);
             this.channel.write(type.name() + "\r\n");
         }
 

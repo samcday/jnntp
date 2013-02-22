@@ -9,8 +9,6 @@ import java.util.Date;
 import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 
 public class NntpDateResponse extends NntpResponse {
-    public static final ResponseType TYPE = ResponseType.DATE;
-
     private Date date;
 
     public NntpDateResponse(int code) {
@@ -28,7 +26,8 @@ public class NntpDateResponse extends NntpResponse {
             pullAsciiNumberFromBuffer(buffer, 2), // mm
             pullAsciiNumberFromBuffer(buffer, 2), // dd
             pullAsciiNumberFromBuffer(buffer, 2), // hh
-            pullAsciiNumberFromBuffer(buffer, 2), //ss
+            pullAsciiNumberFromBuffer(buffer, 2), // mm
+            pullAsciiNumberFromBuffer(buffer, 2), // ss
             DateTimeZone.UTC
         ).toDate();
     }

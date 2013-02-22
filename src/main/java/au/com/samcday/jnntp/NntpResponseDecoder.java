@@ -1,47 +1,30 @@
 package au.com.samcday.jnntp;
 
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
-
-import java.util.concurrent.ConcurrentLinkedQueue;
+import org.jboss.netty.handler.codec.frame.FrameDecoder;
 
 import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 
-public class NntpResponseDecoder extends SimpleChannelHandler {
-    private ConcurrentLinkedQueue<NntpFuture<?>> responseQueue;
+public class NntpResponseDecoder extends FrameDecoder {
+    private CommandPipelinePeeker pipelinePeeker;
 
-    public NntpResponseDecoder(ConcurrentLinkedQueue<NntpFuture<?>> responseQueue) {
-        this.responseQueue = responseQueue;
+    public NntpResponseDecoder(CommandPipelinePeeker pipelinePeeker) {
+        this.pipelinePeeker = pipelinePeeker;
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-        ChannelBuffer buf = (ChannelBuffer)e.getMessage();
+    protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer) throws Exception {
+        int code = pullAsciiNumberFromBuffer(buffer, 3);
+        buffer.skipBytes(1);
 
-        int code = pullAsciiNumberFromBuffer(buf, 3);
-        buf.skipBytes(1);
+        NntpResponse.ResponseType type = this.pipelinePeeker.peekType();
+        NntpResponse response = type.construct(code);
+        response.process(buffer);
 
-        NntpFuture future = this.responseQueue.poll();
-
-        NntpResponse response = this.prepareResponse(future.getType(), code, buf);
-        future.onResponse(response);
-    }
-
-    private NntpResponse prepareResponse(NntpResponse.ResponseType type, int code, ChannelBuffer buf) {
-        NntpResponse response = null;
-
-        switch(type) {
-            case WELCOME:
-                response = new NntpWelcomeResponse(code);
-                break;
-            case DATE:
-                response = new NntpDateResponse(code);
-                break;
-        }
-
-        if(response != null) response.process(buf);
+        // Just in case the response class didn't fully parse the buffer for whatever reason...
+        buffer.skipBytes(buffer.readableBytes());
         return response;
     }
 }
