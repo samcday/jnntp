@@ -5,7 +5,10 @@ import org.jboss.netty.buffer.ChannelBuffer;
 public abstract class NntpResponse {
     protected int code;
 
-    public NntpResponse(int code) {
+    public NntpResponse() {
+    }
+
+    public void setCode(int code) {
         this.code = code;
     }
 
@@ -18,16 +21,5 @@ public abstract class NntpResponse {
     public static enum ResponseType {
         WELCOME,
         DATE;
-
-        public NntpResponse construct(int code) {
-            switch(this) {
-                case WELCOME:
-                    return new NntpWelcomeResponse(code);
-                case DATE:
-                    return new NntpDateResponse(code);
-                default:
-                    return null;
-            }
-        }
     }
 }

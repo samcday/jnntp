@@ -11,10 +11,6 @@ import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 public class NntpDateResponse extends NntpResponse {
     private Date date;
 
-    public NntpDateResponse(int code) {
-        super(code);
-    }
-
     public Date getDate() {
         return date;
     }

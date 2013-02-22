@@ -70,7 +70,7 @@ public class NntpClient {
         bootstrap.setPipeline(Channels.pipeline(
             new StringEncoder(Charsets.UTF_8),
             new LineBasedFrameDecoder(4096),
-            new NntpResponseDecoder(new CommandPipelinePeekerImpl(pipeline)),
+            new NntpResponseDecoder(new CommandPipelinePeekerImpl(pipeline), new NntpResponseFactoryImpl()),
             new NntpResponseDispatcher(pipeline)
         ));
 

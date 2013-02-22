@@ -9,9 +9,11 @@ import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 
 public class NntpResponseDecoder extends FrameDecoder {
     private CommandPipelinePeeker pipelinePeeker;
+    private NntpResponseFactory responseFactory;
 
-    public NntpResponseDecoder(CommandPipelinePeeker pipelinePeeker) {
+    public NntpResponseDecoder(CommandPipelinePeeker pipelinePeeker, NntpResponseFactory responseFactory) {
         this.pipelinePeeker = pipelinePeeker;
+        this.responseFactory = responseFactory;
     }
 
     @Override
@@ -20,7 +22,8 @@ public class NntpResponseDecoder extends FrameDecoder {
         buffer.skipBytes(1);
 
         NntpResponse.ResponseType type = this.pipelinePeeker.peekType();
-        NntpResponse response = type.construct(code);
+        NntpResponse response = responseFactory.newResponse(type);
+        response.setCode(code);
         response.process(buffer);
 
         // Just in case the response class didn't fully parse the buffer for whatever reason...
