@@ -61,7 +61,7 @@ public class YencDecoder extends FrameDecoder {
 
                 long expectedCRC = this.parseTrailer(buffer);
                 if(expectedCRC > -1 && this.crc32.getValue() != expectedCRC) {
-                    throw new IOException("CRC checksum error in yEnc block.");
+                    throw new YencChecksumFailureException();
                 }
 
                 ChannelBuffer ret = this.decodeBuffer;

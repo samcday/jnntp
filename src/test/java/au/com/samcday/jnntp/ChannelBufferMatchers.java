@@ -24,9 +24,9 @@ public class ChannelBufferMatchers {
 
         @Override
         protected boolean matchesSafely(ChannelBuffer channelBuffer) {
-            if(channelBuffer.capacity() != this.expected.capacity()) return false;
+            if(channelBuffer.readableBytes() != this.expected.readableBytes()) return false;
 
-            for(int i = 0; i < channelBuffer.capacity(); i++) {
+            while(channelBuffer.readable()) {
                 if(channelBuffer.readByte() != this.expected.readByte()) {
                     return false;
                 }
