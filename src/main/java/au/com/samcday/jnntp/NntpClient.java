@@ -1,5 +1,6 @@
 package au.com.samcday.jnntp;
 
+import au.com.samcday.GroupInfo;
 import au.com.samcday.jnntp.exceptions.*;
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.Futures;
@@ -114,6 +115,11 @@ public class NntpClient {
         NntpFuture<NntpListResponse> future = this.sendCommand(NntpResponse.ResponseType.LIST);
         NntpListResponse response = Futures.getUnchecked(future);
         return response.getItems();
+    }
+
+    public GroupInfo group(String name) {
+        NntpFuture<NntpGroupResponse> future = this.sendCommand(NntpResponse.ResponseType.GROUP, name);
+        return Futures.getUnchecked(future).info;
     }
 
     private <T extends NntpResponse> NntpFuture<T> sendCommand(NntpResponse.ResponseType type, String... args) {

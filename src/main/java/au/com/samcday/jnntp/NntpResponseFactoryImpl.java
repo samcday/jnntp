@@ -15,6 +15,9 @@ public class NntpResponseFactoryImpl implements NntpResponseFactory {
             case LIST:
                 response = new NntpListResponse();
                 break;
+            case GROUP:
+                response = new NntpGroupResponse();
+                break;
             default:
                 return null;
         }

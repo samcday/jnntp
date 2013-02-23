@@ -31,10 +31,10 @@ public class NntpListResponse extends NntpResponse {
         buffer.skipBytes(groupLen + 1);
         int highLen = buffer.bytesBefore((byte)0x20);
         int high = pullAsciiNumberFromBuffer(buffer, highLen);
-        buffer.skipBytes(highLen + 1);
+        buffer.skipBytes(1);
         int lowLen = buffer.bytesBefore((byte)0x20);
         int low = pullAsciiNumberFromBuffer(buffer, lowLen);
-        buffer.skipBytes(lowLen + 1);
+        buffer.skipBytes(1);
         this.items.add(new GroupListItem(group, low, high));
     }
 

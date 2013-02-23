@@ -31,6 +31,7 @@ public abstract class NntpResponse {
         WELCOME,
         AUTHINFO,
         DATE,
-        LIST;
+        LIST,
+        GROUP;
     }
 }
