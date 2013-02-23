@@ -43,7 +43,7 @@ public class YencDecoder extends FrameDecoder {
                 // Let's go ahead and parse the header now.
                 int size = this.parseHeader(buffer);
                 if(size > -1) {
-                    this.decodeBuffer = ChannelBuffers.dynamicBuffer(size);
+                    this.decodeBuffer = buffer.factory().getBuffer(size);
                 }
                 else {
                     // TODO: any other hints we could be picking up to get some kind of decent estimate here?

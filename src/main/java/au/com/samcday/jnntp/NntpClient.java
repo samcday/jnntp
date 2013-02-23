@@ -1,5 +1,6 @@
 package au.com.samcday.jnntp;
 
+import au.com.samcday.ResponseStateNotifierImpl;
 import au.com.samcday.jnntp.exceptions.*;
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.Futures;
@@ -70,8 +71,8 @@ public class NntpClient {
         bootstrap.setPipeline(Channels.pipeline(
             new StringEncoder(Charsets.UTF_8),
             new LineBasedFrameDecoder(4096),
-            new NntpResponseDecoder(new CommandPipelinePeekerImpl(pipeline), new NntpResponseFactoryImpl()),
-            new NntpResponseDispatcher(pipeline)
+            new ResponseDecoder(new ResponseStateNotifierImpl(this.pipeline)),
+            new ResponseProcessor(this.pipeline)
         ));
 
         return bootstrap.connect(addr).awaitUninterruptibly();
@@ -120,6 +121,8 @@ public class NntpClient {
         NntpFuture<NntpGroupResponse> future = this.sendCommand(NntpResponse.ResponseType.GROUP, name);
         return Futures.getUnchecked(future).info;
     }
+
+
 
     private <T extends NntpResponse> NntpFuture<T> sendCommand(NntpResponse.ResponseType type, String... args) {
         NntpFuture future = new NntpFuture(type);
