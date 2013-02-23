@@ -1,8 +1,5 @@
 package au.com.samcday.jnntp;
 
-import au.com.samcday.jnntp.NntpFuture;
-import au.com.samcday.jnntp.NntpResponse;
-import au.com.samcday.jnntp.ResponseStateNotifier;
 import com.google.common.collect.Sets;
 
 import java.util.Set;

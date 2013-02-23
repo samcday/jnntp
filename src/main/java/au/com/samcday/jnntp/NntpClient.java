@@ -4,10 +4,7 @@ import au.com.samcday.jnntp.exceptions.*;
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.Futures;
 import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.Channels;
+import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.LineBasedFrameDecoder;
 import org.jboss.netty.handler.codec.string.StringEncoder;
@@ -19,6 +16,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 
 public class NntpClient {
+    static final String HANDLER_PROCESSOR = "nntpprocessor";
+
     private String host;
     private int port;
     private Channel channel;
@@ -67,12 +66,18 @@ public class NntpClient {
             Executors.newCachedThreadPool()
         );
         ClientBootstrap bootstrap = new ClientBootstrap(factory);
-        bootstrap.setPipeline(Channels.pipeline(
-            new StringEncoder(Charsets.UTF_8),
-            new LineBasedFrameDecoder(4096),
-            new ResponseDecoder(new ResponseStateNotifierImpl(this.pipeline)),
-            new ResponseProcessor(this.pipeline)
-        ));
+        bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+            @Override
+            public ChannelPipeline getPipeline() throws Exception {
+                ChannelPipeline pipeline = Channels.pipeline();
+                pipeline.addLast("stringenc", new StringEncoder(Charsets.UTF_8));
+                pipeline.addLast("lineframer", new LineBasedFrameDecoder(4096));
+                pipeline.addLast("decoder", new ResponseDecoder(new ResponseStateNotifierImpl(NntpClient.this.pipeline)));
+                pipeline.addLast(HANDLER_PROCESSOR, new ResponseProcessor(NntpClient.this.pipeline));
+
+                return pipeline;
+            }
+        });
 
         return bootstrap.connect(addr).awaitUninterruptibly();
     }
@@ -121,7 +126,10 @@ public class NntpClient {
         return Futures.getUnchecked(future).info;
     }
 
-
+    public OverviewList overview(int start, int end) {
+        NntpFuture<NntpOverviewResponse> future = this.sendCommand(NntpResponse.ResponseType.XZVER, Integer.toString(start), Integer.toString(end));
+        return Futures.getUnchecked(future).list;
+    }
 
     private <T extends NntpResponse> NntpFuture<T> sendCommand(NntpResponse.ResponseType type, String... args) {
         NntpFuture future = new NntpFuture(type);

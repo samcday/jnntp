@@ -16,22 +16,20 @@ public abstract class NntpResponse {
         return code;
     }
 
-    public boolean isMultiline() {
-        return false;
-    }
-
     public void processLine(ChannelBuffer buffer) {
         // Given empty implementation as it is not mandatory.
     }
 
     public abstract void process(ChannelBuffer buffer);
 
-
     public static enum ResponseType {
         WELCOME,
         AUTHINFO,
         DATE,
         LIST,
-        GROUP;
+        GROUP,
+        OVER,
+        XOVER,
+        XZVER;
     }
 }

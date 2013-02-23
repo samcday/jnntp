@@ -16,11 +16,6 @@ public class NntpListResponse extends NntpResponse {
     }
 
     @Override
-    public boolean isMultiline() {
-        return this.code == 215;
-    }
-
-    @Override
     public void process(ChannelBuffer buffer) {
     }
 
