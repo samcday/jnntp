@@ -1,4 +1,4 @@
-package au.com.samcday;
+package au.com.samcday.jnntp;
 
 public class GroupInfo {
     public int low;

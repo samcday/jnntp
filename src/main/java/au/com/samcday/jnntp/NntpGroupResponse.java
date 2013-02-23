@@ -1,6 +1,5 @@
 package au.com.samcday.jnntp;
 
-import au.com.samcday.GroupInfo;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
