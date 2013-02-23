@@ -15,8 +15,6 @@ import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 public class ResponseDecoder extends OneToOneDecoder {
     private byte LINE_TERMINATOR = 0x2E;
 
-    private NntpResponse currentMultilineResponse;
-
     private ResponseStateNotifier responseStateNotifier;
     private boolean decodingMultiline;
 
@@ -47,22 +45,5 @@ public class ResponseDecoder extends OneToOneDecoder {
         this.decodingMultiline = this.responseStateNotifier.isMultiline(code);
 
         return new RawResponseMessage(code, buffer.slice(), this.decodingMultiline);
-        /*
-
-        NntpResponse.ResponseType type = this.pipelinePeeker.peekType();
-        NntpResponse response = responseFactory.newResponse(type);
-        response.setCode(code);
-        response.process(buffer);
-
-        // Just in case the response class didn't fully parse the buffer for whatever reason...
-        buffer.skipBytes(buffer.readableBytes());
-
-        if(response.isMultiline()) {
-            this.currentMultilineResponse = response;
-            return null;
-        }
-        else {
-            return response;
-        }*/
     }
 }
