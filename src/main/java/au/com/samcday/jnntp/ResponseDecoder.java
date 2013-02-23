@@ -15,9 +15,6 @@ import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 public class ResponseDecoder extends OneToOneDecoder {
     private byte LINE_TERMINATOR = 0x2E;
 
-    private CommandPipelinePeeker pipelinePeeker;
-    private NntpResponseFactory responseFactory;
-
     private NntpResponse currentMultilineResponse;
 
     private ResponseStateNotifier responseStateNotifier;
