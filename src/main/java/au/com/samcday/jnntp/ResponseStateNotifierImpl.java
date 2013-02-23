@@ -1,4 +1,4 @@
-package au.com.samcday;
+package au.com.samcday.jnntp;
 
 import au.com.samcday.jnntp.NntpFuture;
 import au.com.samcday.jnntp.NntpResponse;

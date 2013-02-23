@@ -1,6 +1,5 @@
 package au.com.samcday.jnntp;
 
-import au.com.samcday.ResponseStateNotifierImpl;
 import au.com.samcday.jnntp.exceptions.*;
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.Futures;
