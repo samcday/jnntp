@@ -40,17 +40,20 @@ public class ResponseProcessor extends SimpleChannelHandler {
                 pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "lineframeragain", new LineBasedFrameDecoder(4096));
             }
 
+            NntpFuture future;
             if(rawResponse.multiline) {
                 this.currentResponse = response;
+                future = this.pipeline.peek();
             }
             else {
-                NntpFuture future = this.pipeline.poll();
-                future.onResponse(response);
+                future = this.pipeline.poll();
             }
+            future.onResponse(response);
         }
         else if(e.getMessage() == MultilineEndMessage.INSTANCE) {
-            NntpFuture future = this.pipeline.poll();
-            future.onResponse(this.currentResponse);
+            NntpFuture future = this.pipeline.remove();
+            this.currentResponse.processLine(null);
+            this.currentResponse = null;
 
             Response.ResponseType type = future.getType();
             if(type == Response.ResponseType.XZVER) {

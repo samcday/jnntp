@@ -127,7 +127,7 @@ public class NntpClient {
     }
 
     public OverviewList overview(int start, int end) {
-        NntpFuture<OverviewResponse> future = this.sendCommand(Response.ResponseType.XZVER, Integer.toString(start), Integer.toString(end));
+        NntpFuture<OverviewResponse> future = this.sendCommand(Response.ResponseType.XZVER, Integer.toString(start) + "-" + Integer.toString(end));
         return Futures.getUnchecked(future).list;
     }
 
