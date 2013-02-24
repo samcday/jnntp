@@ -15,6 +15,6 @@ public class ResponseStateNotifierImpl implements ResponseStateNotifier {
 
     @Override
     public boolean isMultiline(int code) {
-        return MULTILINE_CODES.contains(code) && (code != 211 || pipeline.peek().getType() != NntpResponse.ResponseType.GROUP);
+        return MULTILINE_CODES.contains(code) && (code != 211 || pipeline.peek().getType() != Response.ResponseType.GROUP);
     }
 }

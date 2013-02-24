@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class ResponseProcessor extends SimpleChannelHandler {
     private ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
 
-    private NntpResponse currentResponse;
+    private Response currentResponse;
 
     public ResponseProcessor(ConcurrentLinkedQueue<NntpFuture<?>> pipeline) {
         this.pipeline = pipeline;
@@ -28,12 +28,12 @@ public class ResponseProcessor extends SimpleChannelHandler {
 
             // TODO: error code handling here.
 
-            NntpResponse.ResponseType type = this.pipeline.peek().getType();
-            NntpResponse response = this.constructResponse(type);
+            Response.ResponseType type = this.pipeline.peek().getType();
+            Response response = this.constructResponse(type);
             response.setCode(rawResponse.code);
             response.process(rawResponse.buffer);
 
-            if(type == NntpResponse.ResponseType.XZVER) {
+            if(type == Response.ResponseType.XZVER) {
                 ChannelPipeline pipeline = ctx.getPipeline();
                 pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "ydecode", new YencDecoder());
                 pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "zlib", new ZlibDecoder(ZlibWrapper.NONE));
@@ -52,8 +52,8 @@ public class ResponseProcessor extends SimpleChannelHandler {
             NntpFuture future = this.pipeline.poll();
             future.onResponse(this.currentResponse);
 
-            NntpResponse.ResponseType type = future.getType();
-            if(type == NntpResponse.ResponseType.XZVER) {
+            Response.ResponseType type = future.getType();
+            if(type == Response.ResponseType.XZVER) {
                 ChannelPipeline pipeline = ctx.getPipeline();
                 pipeline.remove("ydecode");
                 pipeline.remove("zlib");
@@ -65,21 +65,21 @@ public class ResponseProcessor extends SimpleChannelHandler {
         }
     }
 
-    private NntpResponse constructResponse(NntpResponse.ResponseType type) {
+    private Response constructResponse(Response.ResponseType type) {
         switch(type) {
             case WELCOME:
             case AUTHINFO:
-                return new NntpGenericResponse();
+                return new GenericResponse();
             case DATE:
-                return new NntpDateResponse();
+                return new DateResponse();
             case LIST:
-                return new NntpListResponse();
+                return new ListResponse();
             case GROUP:
-                return new NntpGroupResponse();
+                return new GroupResponse();
             case XOVER:
             case XZVER:
             case OVER:
-                return new NntpOverviewResponse();
+                return new OverviewResponse();
 
             default:
                 return null;

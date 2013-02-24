@@ -8,10 +8,10 @@ import java.util.List;
 
 import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 
-public class NntpListResponse extends NntpResponse {
+public class ListResponse extends Response {
     private List<GroupListItem> items;
 
-    public NntpListResponse() {
+    public ListResponse() {
         this.items = new ArrayList<>();
     }
 

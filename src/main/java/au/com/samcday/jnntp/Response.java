@@ -2,10 +2,10 @@ package au.com.samcday.jnntp;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public abstract class NntpResponse {
+public abstract class Response {
     protected int code;
 
-    public NntpResponse() {
+    public Response() {
     }
 
     public void setCode(int code) {

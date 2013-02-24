@@ -8,7 +8,7 @@ import java.util.Date;
 
 import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 
-public class NntpDateResponse extends NntpResponse {
+public class DateResponse extends Response {
     private Date date;
 
     public Date getDate() {

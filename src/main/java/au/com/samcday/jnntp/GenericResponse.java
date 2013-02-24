@@ -3,7 +3,7 @@ package au.com.samcday.jnntp;
 import com.google.common.base.Charsets;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-public class NntpGenericResponse extends NntpResponse {
+public class GenericResponse extends Response {
     private String message;
 
     @Override

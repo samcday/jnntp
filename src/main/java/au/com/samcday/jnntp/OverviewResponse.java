@@ -4,7 +4,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 
 import java.nio.charset.Charset;
 
-public class NntpOverviewResponse extends NntpResponse {
+public class OverviewResponse extends Response {
     public OverviewList list;
 
     @Override

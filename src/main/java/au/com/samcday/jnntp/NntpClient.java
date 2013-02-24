@@ -33,7 +33,7 @@ public class NntpClient {
 
     public void connect() throws NntpClientConnectionError {
         // We'll be waiting for the connection message.
-        NntpFuture<NntpGenericResponse> welcomeFuture = new NntpFuture<>(NntpResponse.ResponseType.WELCOME);
+        NntpFuture<GenericResponse> welcomeFuture = new NntpFuture<>(Response.ResponseType.WELCOME);
         this.pipeline.add(welcomeFuture);
 
         // Connect to the server now.
@@ -43,7 +43,7 @@ public class NntpClient {
         }
         this.channel = future.getChannel();
 
-        NntpGenericResponse response = Futures.getUnchecked(welcomeFuture);
+        GenericResponse response = Futures.getUnchecked(welcomeFuture);
         boolean temporarilyUnavailable = false;
         switch(response.getCode()) {
             case 200:
@@ -83,15 +83,15 @@ public class NntpClient {
     }
 
     public void authenticate(String username, String password) throws NntpClientAuthenticationException {
-        NntpFuture<NntpGenericResponse> future = this.sendCommand(NntpResponse.ResponseType.AUTHINFO, "USER", username);
-        NntpGenericResponse resp = Futures.getUnchecked(future);
+        NntpFuture<GenericResponse> future = this.sendCommand(Response.ResponseType.AUTHINFO, "USER", username);
+        GenericResponse resp = Futures.getUnchecked(future);
         if(resp.getCode() == 281) {
             // Well ... that was easy.
             return;
         }
 
         if(resp.getCode() == 381) {
-            future = this.sendCommand(NntpResponse.ResponseType.AUTHINFO, "PASS", password);
+            future = this.sendCommand(Response.ResponseType.AUTHINFO, "PASS", password);
             resp = Futures.getUnchecked(future);
             if(resp.getCode() == 281) {
                 return;
@@ -110,28 +110,28 @@ public class NntpClient {
      * @return
      */
     public Date date() {
-        NntpFuture<NntpDateResponse> future = this.sendCommand(NntpResponse.ResponseType.DATE);
-        NntpDateResponse response = Futures.getUnchecked(future);
+        NntpFuture<DateResponse> future = this.sendCommand(Response.ResponseType.DATE);
+        DateResponse response = Futures.getUnchecked(future);
         return response.getDate();
     }
 
     public List<GroupListItem> list() {
-        NntpFuture<NntpListResponse> future = this.sendCommand(NntpResponse.ResponseType.LIST);
-        NntpListResponse response = Futures.getUnchecked(future);
+        NntpFuture<ListResponse> future = this.sendCommand(Response.ResponseType.LIST);
+        ListResponse response = Futures.getUnchecked(future);
         return response.getItems();
     }
 
     public GroupInfo group(String name) {
-        NntpFuture<NntpGroupResponse> future = this.sendCommand(NntpResponse.ResponseType.GROUP, name);
+        NntpFuture<GroupResponse> future = this.sendCommand(Response.ResponseType.GROUP, name);
         return Futures.getUnchecked(future).info;
     }
 
     public OverviewList overview(int start, int end) {
-        NntpFuture<NntpOverviewResponse> future = this.sendCommand(NntpResponse.ResponseType.XZVER, Integer.toString(start), Integer.toString(end));
+        NntpFuture<OverviewResponse> future = this.sendCommand(Response.ResponseType.XZVER, Integer.toString(start), Integer.toString(end));
         return Futures.getUnchecked(future).list;
     }
 
-    private <T extends NntpResponse> NntpFuture<T> sendCommand(NntpResponse.ResponseType type, String... args) {
+    private <T extends Response> NntpFuture<T> sendCommand(Response.ResponseType type, String... args) {
         NntpFuture future = new NntpFuture(type);
         synchronized (this.channel) {
             this.pipeline.add(future);

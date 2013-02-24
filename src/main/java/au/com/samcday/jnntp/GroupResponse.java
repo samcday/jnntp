@@ -4,7 +4,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 
 import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
 
-public class NntpGroupResponse extends NntpResponse {
+public class GroupResponse extends Response {
     public GroupInfo info;
 
     @Override

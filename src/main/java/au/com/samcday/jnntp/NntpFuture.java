@@ -2,12 +2,12 @@ package au.com.samcday.jnntp;
 
 import java.util.concurrent.*;
 
-public class NntpFuture<T extends NntpResponse> implements Future<T> {
+public class NntpFuture<T extends Response> implements Future<T> {
     private CountDownLatch latch;
     private T response;
-    private NntpResponse.ResponseType type;
+    private Response.ResponseType type;
 
-    public NntpFuture(NntpResponse.ResponseType type) {
+    public NntpFuture(Response.ResponseType type) {
         this.type = type;
         this.latch = new CountDownLatch(1);
     }
@@ -39,7 +39,7 @@ public class NntpFuture<T extends NntpResponse> implements Future<T> {
         return this.response;
     }
 
-    public NntpResponse.ResponseType getType() {
+    public Response.ResponseType getType() {
         return type;
     }
 
