@@ -13,6 +13,7 @@ import org.jboss.netty.handler.codec.frame.LineBasedFrameDecoder;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static au.com.samcday.jnntp.ChannelBufferMatchers.exactChannelBuffer;
 import static org.junit.Assert.assertThat;
@@ -20,7 +21,7 @@ import static org.junit.Assert.assertThat;
 public class YencDecoderTests {
     @Test
     public void testDecode() throws IOException {
-        DecoderEmbedder<ChannelBufferMatchers> decoderEmbedder = new DecoderEmbedder<>(new LineBasedFrameDecoder(4096), new YencDecoder());
+        DecoderEmbedder<ChannelBuffer> decoderEmbedder = new DecoderEmbedder<>(new LineBasedFrameDecoder(4096), new YencDecoder());
 
         ChannelBuffer encoded = ChannelBuffers.dynamicBuffer();
         IOUtils.copy(Resources.getResource("lorem-ipsum.ync").openStream(), new ChannelBufferOutputStream(encoded));
@@ -31,12 +32,15 @@ public class YencDecoderTests {
         decoderEmbedder.offer(encoded);
         decoderEmbedder.finish();
 
-        assertThat((ChannelBuffer)decoderEmbedder.poll(), exactChannelBuffer(original));
+
+        Object[] result = decoderEmbedder.pollAll();
+        ChannelBuffer[] buffers = Arrays.copyOf(result, result.length, ChannelBuffer[].class);
+        assertThat(ChannelBuffers.copiedBuffer(buffers), exactChannelBuffer(original));
     }
 
     @Test(expected = YencChecksumFailureException.class)
     public void testChecksumFailure() throws Throwable {
-        DecoderEmbedder<ChannelBufferMatchers> decoderEmbedder = new DecoderEmbedder<>(new LineBasedFrameDecoder(4096), new YencDecoder());
+        DecoderEmbedder<ChannelBuffer> decoderEmbedder = new DecoderEmbedder<>(new LineBasedFrameDecoder(4096), new YencDecoder());
 
         ChannelBuffer encoded = ChannelBuffers.dynamicBuffer();
         IOUtils.copy(Resources.getResource("lorem-ipsum-invalid-checksum.ync").openStream(), new ChannelBufferOutputStream(encoded));
@@ -51,7 +55,5 @@ public class YencDecoderTests {
         catch(CodecEmbedderException cee) {
             throw cee.getCause();
         }
-
-        assertThat((ChannelBuffer)decoderEmbedder.poll(), exactChannelBuffer(original));
     }
 }
