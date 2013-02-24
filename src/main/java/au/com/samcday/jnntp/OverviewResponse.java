@@ -16,8 +16,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class OverviewResponse extends Response {
     private static final List<DateTimeFormatter> DATE_FORMATS = Lists.newArrayList(
-        DateTimeFormat.forPattern("EEE, dd MMM yyyy kk:mm:ss Z"),
-        DateTimeFormat.forPattern("dd MMM yyyy kk:mm:ss 'GMT'").withZoneUTC()
+        DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss Z"),
+        DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'").withZoneUTC(),
+        DateTimeFormat.forPattern("dd MMM yyyy HH:mm:ss 'GMT'").withZoneUTC()
     );
 
     public OverviewList list;
@@ -69,7 +70,7 @@ public class OverviewResponse extends Response {
             if(date != null) return date.toDate();
         }
 
-        return null;
+        throw new RuntimeException("Couldn't parse date " + str);
     }
 
     private class OverviewIterator extends AbstractIterator<Overview> {
