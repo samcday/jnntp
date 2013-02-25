@@ -28,6 +28,7 @@ public class NntpClient {
     private boolean ssl;
     private Channel channel;
     private ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
+    private ClientBootstrap bootstrap;
     private boolean canPost;
 
     public NntpClient(String host, int port, boolean ssl) {
@@ -74,6 +75,15 @@ public class NntpClient {
         }
     }
 
+    /**
+     * Closes the connection to the remote NNTP server and cleans up any resources held by this client.
+     */
+    public void disconnect() {
+        // TODO: cancel all futures in pipeline and clean up the command pipeline.
+        this.channel.close().awaitUninterruptibly();
+        this.bootstrap.releaseExternalResources();
+    }
+
     private ChannelFuture initializeChannel(InetSocketAddress addr) throws NntpClientConnectionError {
         ChannelFactory factory = new NioClientSocketChannelFactory(
             Executors.newCachedThreadPool(),
@@ -94,8 +104,8 @@ public class NntpClient {
             engine = null;
         }
 
-        ClientBootstrap bootstrap = new ClientBootstrap(factory);
-        bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+        this.bootstrap = new ClientBootstrap(factory);
+        this.bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
             @Override
             public ChannelPipeline getPipeline() throws Exception {
                 ChannelPipeline pipeline = Channels.pipeline();
@@ -112,7 +122,7 @@ public class NntpClient {
             }
         });
 
-        return bootstrap.connect(addr).awaitUninterruptibly();
+        return this.bootstrap.connect(addr).awaitUninterruptibly();
     }
 
     private SSLEngine initializeSsl() throws NoSuchAlgorithmException, KeyManagementException {
