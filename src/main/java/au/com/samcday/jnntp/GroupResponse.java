@@ -2,7 +2,7 @@ package au.com.samcday.jnntp;
 
 import org.jboss.netty.buffer.ChannelBuffer;
 
-import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
+import static au.com.samcday.jnntp.Util.pullAsciiLongFromBuffer;
 
 public class GroupResponse extends Response {
     public GroupInfo info;
@@ -12,13 +12,13 @@ public class GroupResponse extends Response {
         this.info = new GroupInfo();
 
         int countLen = buffer.bytesBefore((byte)0x20);
-        this.info.count = pullAsciiNumberFromBuffer(buffer, countLen);
+        this.info.count = pullAsciiLongFromBuffer(buffer, countLen);
         buffer.skipBytes(1);
         int lowLen = buffer.bytesBefore((byte)0x20);
-        this.info.low = pullAsciiNumberFromBuffer(buffer, lowLen);
+        this.info.low = pullAsciiLongFromBuffer(buffer, lowLen);
         buffer.skipBytes(1);
         int highLen = buffer.bytesBefore((byte)0x20);
-        this.info.high = pullAsciiNumberFromBuffer(buffer, highLen);
+        this.info.high = pullAsciiLongFromBuffer(buffer, highLen);
         buffer.skipBytes(1);
     }
 }

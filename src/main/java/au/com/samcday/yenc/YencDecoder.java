@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.zip.CRC32;
 
 import static au.com.samcday.jnntp.Util.pullAsciiHexNumberFromBuffer;
-import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
+import static au.com.samcday.jnntp.Util.pullAsciiIntFromBuffer;
 
 /**
  * Specialized yEnc decoder that works off ChannelBuffers for better zero-copy efficiency. Code based on lpireyn/pi-yenc
@@ -105,7 +105,7 @@ public class YencDecoder extends OneToOneDecoder {
         buffer.skipBytes(sizeIndex + 5); // + 5 for the "size="
         int endIndex = buffer.bytesBefore(BYTE_SPACE);
         if(endIndex == -1) endIndex = buffer.readableBytes();
-        return pullAsciiNumberFromBuffer(buffer, endIndex);
+        return pullAsciiIntFromBuffer(buffer, endIndex);
     }
 
     private long parseTrailer(ChannelBuffer buffer) {

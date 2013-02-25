@@ -6,7 +6,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
+import static au.com.samcday.jnntp.Util.pullAsciiIntFromBuffer;
 
 public class ListResponse extends Response {
     private List<GroupListItem> items;
@@ -25,10 +25,10 @@ public class ListResponse extends Response {
         String group = buffer.toString(0, groupLen, Charsets.UTF_8);
         buffer.skipBytes(groupLen + 1);
         int highLen = buffer.bytesBefore((byte)0x20);
-        int high = pullAsciiNumberFromBuffer(buffer, highLen);
+        int high = pullAsciiIntFromBuffer(buffer, highLen);
         buffer.skipBytes(1);
         int lowLen = buffer.bytesBefore((byte)0x20);
-        int low = pullAsciiNumberFromBuffer(buffer, lowLen);
+        int low = pullAsciiIntFromBuffer(buffer, lowLen);
         buffer.skipBytes(1);
         this.items.add(new GroupListItem(group, low, high));
     }

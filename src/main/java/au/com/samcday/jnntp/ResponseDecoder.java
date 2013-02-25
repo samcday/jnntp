@@ -5,7 +5,7 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.jboss.netty.handler.codec.oneone.OneToOneDecoder;
 
-import static au.com.samcday.jnntp.Util.pullAsciiNumberFromBuffer;
+import static au.com.samcday.jnntp.Util.pullAsciiIntFromBuffer;
 
 /**
  * This decoder handles the raw responses from the server, and relies on an injected {@link ResponseStateNotifier}
@@ -39,7 +39,7 @@ public class ResponseDecoder extends OneToOneDecoder {
             return buffer.slice();
         }
 
-        int code = pullAsciiNumberFromBuffer(buffer, 3);
+        int code = pullAsciiIntFromBuffer(buffer, 3);
         buffer.skipBytes(1);
 
         this.decodingMultiline = this.responseStateNotifier.isMultiline(code);

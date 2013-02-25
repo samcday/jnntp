@@ -10,9 +10,22 @@ public class Util {
      * @param len
      * @return
      */
-    public static final int pullAsciiNumberFromBuffer(ChannelBuffer buffer, int len) {
+    public static final int pullAsciiIntFromBuffer(ChannelBuffer buffer, int len) {
         int b;
         int num = 0;
+        for(; len > 0; len--) {
+            b = buffer.readByte();
+            if(b < 48 || b > 57) return -1;
+
+            num += (b - 48) * Math.pow(10, len - 1);
+        }
+
+        return num;
+    }
+
+    public static final long pullAsciiLongFromBuffer(ChannelBuffer buffer, int len) {
+        int b;
+        long num = 0;
         for(; len > 0; len--) {
             b = buffer.readByte();
             if(b < 48 || b > 57) return -1;
