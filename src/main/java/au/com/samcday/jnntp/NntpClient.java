@@ -8,8 +8,13 @@ import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.handler.codec.frame.LineBasedFrameDecoder;
 import org.jboss.netty.handler.codec.string.StringEncoder;
+import org.jboss.netty.handler.ssl.SslHandler;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import java.net.InetSocketAddress;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -20,13 +25,15 @@ public class NntpClient {
 
     private String host;
     private int port;
+    private boolean ssl;
     private Channel channel;
     private ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
     private boolean canPost;
 
-    public NntpClient(String host, int port) {
+    public NntpClient(String host, int port, boolean ssl) {
         this.host = host;
         this.port = port;
+        this.ssl = ssl;
 
         this.pipeline = new ConcurrentLinkedQueue<>();
     }
@@ -42,6 +49,13 @@ public class NntpClient {
             throw new NntpClientConnectionError(future.getCause());
         }
         this.channel = future.getChannel();
+
+        if(this.ssl) {
+            ChannelFuture handshakeFuture = this.channel.getPipeline().get(SslHandler.class).handshake().awaitUninterruptibly();
+            if(!handshakeFuture.isSuccess()) {
+                throw new NntpClientConnectionError(handshakeFuture.getCause());
+            }
+        }
 
         GenericResponse response = Futures.getUnchecked(welcomeFuture);
         boolean temporarilyUnavailable = false;
@@ -60,16 +74,35 @@ public class NntpClient {
         }
     }
 
-    private ChannelFuture initializeChannel(InetSocketAddress addr) {
+    private ChannelFuture initializeChannel(InetSocketAddress addr) throws NntpClientConnectionError {
         ChannelFactory factory = new NioClientSocketChannelFactory(
             Executors.newCachedThreadPool(),
             Executors.newCachedThreadPool()
         );
+
+        final SSLEngine engine;
+        if(this.ssl) {
+            try {
+                engine = this.initializeSsl();
+                engine.setUseClientMode(true);
+            }
+            catch(NoSuchAlgorithmException|KeyManagementException ex) {
+                throw new NntpClientConnectionError(ex);
+            }
+        }
+        else {
+            engine = null;
+        }
+
         ClientBootstrap bootstrap = new ClientBootstrap(factory);
         bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
             @Override
             public ChannelPipeline getPipeline() throws Exception {
                 ChannelPipeline pipeline = Channels.pipeline();
+                if(engine != null) {
+                    pipeline.addLast("ssl", new SslHandler(engine));
+                }
+
                 pipeline.addLast("stringenc", new StringEncoder(Charsets.UTF_8));
                 pipeline.addLast("lineframer", new LineBasedFrameDecoder(4096));
                 pipeline.addLast("decoder", new ResponseDecoder(new ResponseStateNotifierImpl(NntpClient.this.pipeline)));
@@ -80,6 +113,12 @@ public class NntpClient {
         });
 
         return bootstrap.connect(addr).awaitUninterruptibly();
+    }
+
+    private SSLEngine initializeSsl() throws NoSuchAlgorithmException, KeyManagementException {
+        SSLContext ctx = SSLContext.getInstance("TLS");
+        ctx.init(null, null, null);
+        return ctx.createSSLEngine();
     }
 
     public void authenticate(String username, String password) throws NntpClientAuthenticationException {

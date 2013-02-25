@@ -8,6 +8,7 @@ public class NntpClientBuilder {
     private int port = 119;
     private String username;
     private String password;
+    private boolean ssl = false;
 
     public static NntpClientBuilder nntpClient(String host) {
         return new NntpClientBuilder(host);
@@ -28,9 +29,13 @@ public class NntpClientBuilder {
         return this;
     }
 
-    public NntpClient build() throws NntpClientConnectionError, NntpClientAuthenticationException {
-        NntpClient client = new NntpClient(this.host, this.port);
+    public NntpClientBuilder ssl(boolean ssl) {
+        this.ssl = ssl;
+        return this;
+    }
 
+    public NntpClient build() throws NntpClientConnectionError, NntpClientAuthenticationException {
+        NntpClient client = new NntpClient(this.host, this.port, this.ssl);
         client.connect();
 
         if(this.username != null) {
