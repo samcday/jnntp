@@ -3,6 +3,8 @@ package au.com.samcday.jnntp;
 import java.util.Date;
 
 public class Overview {
+    public static final Overview END = new Overview();
+
     private long article;
     private String subject;
     private String from;
@@ -12,6 +14,7 @@ public class Overview {
     private int bytes;
     private int lines;
 
+    protected Overview() { }
     public Overview(long article, String subject, String from, Date date, String messageId, String references, int bytes, int lines) {
         this.article = article;
         this.subject = subject;

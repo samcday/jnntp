@@ -2,7 +2,6 @@ package au.com.samcday.jnntp;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
-import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Lists;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.joda.time.DateTime;
@@ -22,14 +21,12 @@ public class OverviewResponse extends Response {
     );
 
     public OverviewList list;
-    private Iterator<Overview> iterator;
     private boolean done;
     private LinkedBlockingQueue<Overview> items;
 
     public OverviewResponse() {
-        this.iterator = new OverviewIterator();
-        this.list = new OverviewList(this.iterator);
         this.items = new LinkedBlockingQueue<>();
+        this.list = new OverviewList(this.items);
     }
 
     @Override
@@ -39,7 +36,7 @@ public class OverviewResponse extends Response {
     @Override
     public void processLine(ChannelBuffer buffer) {
         if(buffer == null) {
-            this.done = true;
+            this.items.offer(Overview.END);
             return;
         }
 
@@ -71,23 +68,5 @@ public class OverviewResponse extends Response {
         }
 
         throw new RuntimeException("Couldn't parse date " + str);
-    }
-
-    private class OverviewIterator extends AbstractIterator<Overview> {
-        @Override
-        protected Overview computeNext() {
-            if(done && items.size() == 0) {
-                return this.endOfData();
-            }
-
-            while(true) {
-                try {
-                    return items.take();
-                }
-                catch(InterruptedException ie) {
-
-                }
-            }
-        }
     }
 }
