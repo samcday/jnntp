@@ -30,6 +30,7 @@ public abstract class Response {
         GROUP,
         OVER,
         XOVER,
-        XZVER;
+        XZVER,
+        BODY;
     }
 }

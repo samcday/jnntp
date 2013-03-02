@@ -22,6 +22,7 @@ public class YencDecoder extends OneToOneDecoder {
     private static final byte BYTE_KEYWORD_LINE = 0x79;
     private static final ChannelBufferIndexFinder BEGIN_INDEX_FINDER = new CharArrayIndexFinder("begin");
     private static final ChannelBufferIndexFinder END_INDEX_FINDER = new CharArrayIndexFinder("end");
+    private static final ChannelBufferIndexFinder PART_INDEX_FINDER = new CharArrayIndexFinder("part");
     private static final ChannelBufferIndexFinder SIZE_INDEX_FINDER = new CharArrayIndexFinder("size");
     private static final ChannelBufferIndexFinder CRC32_INDEX_FINDER = new CharArrayIndexFinder("crc32");
 
@@ -66,6 +67,10 @@ public class YencDecoder extends OneToOneDecoder {
                     throw new YencChecksumFailureException();
                 }
 
+                return null;
+            }
+            else if(buffer.bytesBefore(PART_INDEX_FINDER) == 0) {
+                // TODO: should we propagate some kind of message for this?
                 return null;
             }
             else {

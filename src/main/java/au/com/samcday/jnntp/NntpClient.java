@@ -12,6 +12,7 @@ import org.jboss.netty.handler.ssl.SslHandler;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -178,6 +179,11 @@ public class NntpClient {
     public OverviewList overview(long start, long end) {
         NntpFuture<OverviewResponse> future = this.sendCommand(Response.ResponseType.XZVER, Long.toString(start) + "-" + Long.toString(end));
         return Futures.getUnchecked(future).list;
+    }
+
+    public InputStream body(String messageId) {
+        NntpFuture<BodyResponse> future = this.sendCommand(Response.ResponseType.BODY, messageId);
+        return Futures.getUnchecked(future).stream;
     }
 
     private <T extends Response> NntpFuture<T> sendCommand(Response.ResponseType type, String... args) {

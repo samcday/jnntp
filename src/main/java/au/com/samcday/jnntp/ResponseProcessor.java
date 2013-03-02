@@ -33,9 +33,12 @@ public class ResponseProcessor extends SimpleChannelHandler {
             response.setCode(rawResponse.code);
             response.process(rawResponse.buffer);
 
-            if(type == Response.ResponseType.XZVER) {
-                ChannelPipeline pipeline = ctx.getPipeline();
+            ChannelPipeline pipeline = ctx.getPipeline();
+            if(type == Response.ResponseType.XZVER || type == Response.ResponseType.BODY) {
                 pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "ydecode", new YencDecoder());
+            }
+
+            if(type == Response.ResponseType.XZVER) {
                 pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "zlib", new ZlibDecoder(ZlibWrapper.NONE));
                 pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "lineframeragain", new LineBasedFrameDecoder(4096));
             }
@@ -56,9 +59,11 @@ public class ResponseProcessor extends SimpleChannelHandler {
             this.currentResponse = null;
 
             Response.ResponseType type = future.getType();
-            if(type == Response.ResponseType.XZVER) {
-                ChannelPipeline pipeline = ctx.getPipeline();
+            ChannelPipeline pipeline = ctx.getPipeline();
+            if(type == Response.ResponseType.XZVER || type == Response.ResponseType.BODY) {
                 pipeline.remove("ydecode");
+            }
+            if(type == Response.ResponseType.XZVER) {
                 pipeline.remove("zlib");
                 pipeline.remove("lineframeragain");
             }
@@ -83,7 +88,8 @@ public class ResponseProcessor extends SimpleChannelHandler {
             case XZVER:
             case OVER:
                 return new OverviewResponse();
-
+            case BODY:
+                return new BodyResponse();
             default:
                 return null;
         }
