@@ -35,12 +35,12 @@ public class ResponseProcessor extends SimpleChannelHandler {
 
             ChannelPipeline pipeline = ctx.getPipeline();
             if(type == Response.ResponseType.XZVER || type == Response.ResponseType.BODY) {
-                pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "ydecode", new YencDecoder());
+                pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "ydecode", new YencDecoder());
             }
 
             if(type == Response.ResponseType.XZVER) {
-                pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "zlib", new ZlibDecoder(ZlibWrapper.NONE));
-                pipeline.addBefore(NntpClient.HANDLER_PROCESSOR, "lineframeragain", new LineBasedFrameDecoder(4096));
+                pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "zlib", new ZlibDecoder(ZlibWrapper.NONE));
+                pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "lineframeragain", new LineBasedFrameDecoder(4096));
             }
 
             NntpFuture future;

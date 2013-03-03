@@ -35,7 +35,7 @@ public class NntpClientBuilder {
     }
 
     public NntpClient build() throws NntpClientConnectionError, NntpClientAuthenticationException {
-        NntpClient client = new NntpClient(this.host, this.port, this.ssl);
+        NntpClient client = new DefaultNntpClient(this.host, this.port, this.ssl);
         client.connect();
 
         if(this.username != null) {
