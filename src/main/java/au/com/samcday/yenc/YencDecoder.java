@@ -133,7 +133,7 @@ public class YencDecoder extends OneToOneDecoder {
 
         @Override
         public boolean find(ChannelBuffer buffer, int guessedIndex) {
-            if(guessedIndex + this.strlen > buffer.readableBytes()) return false;
+            if(guessedIndex + this.strlen > buffer.capacity()) return false;
             for(int i = 0; i < this.strlen; i++) {
                 if(buffer.getByte(guessedIndex + i) != this.str[i]) return false;
             }

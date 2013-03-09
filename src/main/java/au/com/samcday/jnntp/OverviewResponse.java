@@ -1,10 +1,8 @@
 package au.com.samcday.jnntp;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -14,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class OverviewResponse extends Response {
+    private static final Splitter TAB_SPLITTER = Splitter.on("\t");
     private static final List<DateTimeFormatter> DATE_FORMATS = Lists.newArrayList(
         DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss Z"),
         DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'").withZoneUTC(),
@@ -21,7 +20,6 @@ public class OverviewResponse extends Response {
     );
 
     public OverviewList list;
-    private boolean done;
     private LinkedBlockingQueue<Overview> items;
 
     public OverviewResponse() {
@@ -40,7 +38,7 @@ public class OverviewResponse extends Response {
             return;
         }
 
-        Iterator<String> parts = Splitter.on("\t").split(buffer.toString(Charsets.UTF_8)).iterator();
+        Iterator<String> parts = TAB_SPLITTER.split(new ChannelBufferCharSequence(buffer)).iterator();
 
         long articleNum = Long.parseLong(parts.next());
         String subject = parts.next();
@@ -55,16 +53,14 @@ public class OverviewResponse extends Response {
     }
 
     private Date parseDate(String str) {
-        DateTime date = null;
+        if(str == null) return null;
 
         for(DateTimeFormatter formatter : DATE_FORMATS) {
             try {
-                date = formatter.parseDateTime(str);
+                return new Date(formatter.parseMillis(str));
             }
             catch(IllegalArgumentException iae) {
             }
-
-            if(date != null) return date.toDate();
         }
 
         throw new RuntimeException("Couldn't parse date " + str);
