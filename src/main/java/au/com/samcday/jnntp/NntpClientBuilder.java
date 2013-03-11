@@ -9,6 +9,7 @@ public class NntpClientBuilder {
     private String username;
     private String password;
     private boolean ssl = false;
+    private int connectionTimeout = 60000;
 
     public static NntpClientBuilder nntpClient(String host) {
         return new NntpClientBuilder(host);
@@ -29,13 +30,18 @@ public class NntpClientBuilder {
         return this;
     }
 
+    public NntpClientBuilder connectionTimeout(int millis) {
+        this.connectionTimeout = millis;
+        return this;
+    }
+
     public NntpClientBuilder ssl(boolean ssl) {
         this.ssl = ssl;
         return this;
     }
 
     public NntpClient build() throws NntpClientConnectionError, NntpClientAuthenticationException {
-        NntpClient client = new DefaultNntpClient(this.host, this.port, this.ssl);
+        NntpClient client = new DefaultNntpClient(this.host, this.port, this.ssl, this.connectionTimeout);
         client.connect();
 
         if(this.username != null) {

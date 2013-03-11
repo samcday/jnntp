@@ -20,23 +20,27 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultNntpClient implements NntpClient {
     static final String HANDLER_PROCESSOR = "nntpprocessor";
+
+    private static final AtomicInteger channelFactoryRefs = new AtomicInteger(0);
+    private static ChannelFactory channelFactory = null;
 
     private String host;
     private int port;
     private boolean ssl;
     private Channel channel;
-    private ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
-    private ClientBootstrap bootstrap;
+    private final ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
     private boolean canPost;
+    private int connectTimeoutMillis;
 
-    public DefaultNntpClient(String host, int port, boolean ssl) {
+    public DefaultNntpClient(String host, int port, boolean ssl, int connectTimeoutMillis) {
         this.host = host;
         this.port = port;
         this.ssl = ssl;
-
+        this.connectTimeoutMillis = connectTimeoutMillis;
         this.pipeline = new ConcurrentLinkedQueue<>();
     }
 
@@ -84,15 +88,10 @@ public class DefaultNntpClient implements NntpClient {
     public void disconnect() {
         // TODO: cancel all futures in pipeline and clean up the command pipeline.
         this.channel.close().awaitUninterruptibly();
-        this.bootstrap.releaseExternalResources();
+        unrefChannelFactory();
     }
 
     private ChannelFuture initializeChannel(InetSocketAddress addr) throws NntpClientConnectionError {
-        ChannelFactory factory = new NioClientSocketChannelFactory(
-            Executors.newCachedThreadPool(),
-            Executors.newCachedThreadPool()
-        );
-
         final SSLEngine engine;
         if(this.ssl) {
             try {
@@ -107,8 +106,13 @@ public class DefaultNntpClient implements NntpClient {
             engine = null;
         }
 
-        this.bootstrap = new ClientBootstrap(factory);
-        this.bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
+        ClientBootstrap bootstrap = new ClientBootstrap(channelFactory());
+        bootstrap.setOption("connectTimeoutMillis", this.connectTimeoutMillis);
+        bootstrap.setOption("tcpNoDelay", true);
+        bootstrap.setOption("keepAlive", true);
+        bootstrap.setOption("reuseAddress", true);
+
+        bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
             @Override
             public ChannelPipeline getPipeline() throws Exception {
                 ChannelPipeline pipeline = Channels.pipeline();
@@ -125,7 +129,7 @@ public class DefaultNntpClient implements NntpClient {
             }
         });
 
-        return this.bootstrap.connect(addr).awaitUninterruptibly();
+        return bootstrap.connect(addr).awaitUninterruptibly();
     }
 
     private SSLEngine initializeSsl() throws NoSuchAlgorithmException, KeyManagementException {
@@ -196,7 +200,7 @@ public class DefaultNntpClient implements NntpClient {
 
     private <T extends Response> NntpFuture<T> sendCommand(Response.ResponseType type, String... args) {
         NntpFuture future = new NntpFuture(type);
-        synchronized (this.channel) {
+        synchronized (this.pipeline) {
             this.pipeline.add(future);
             this.channel.write(type.name());
             for(int i = 0; i < args.length; i++) {
@@ -207,5 +211,27 @@ public class DefaultNntpClient implements NntpClient {
         }
 
         return future;
+    }
+
+    private static final ChannelFactory channelFactory() {
+        synchronized (channelFactoryRefs) {
+            if(channelFactory == null) {
+                channelFactory = new NioClientSocketChannelFactory(
+                    Executors.newCachedThreadPool(),
+                    Executors.newCachedThreadPool()
+                );
+            }
+            channelFactoryRefs.incrementAndGet();
+            return channelFactory;
+        }
+    }
+
+    private static final void unrefChannelFactory() {
+        synchronized (channelFactoryRefs) {
+            if(channelFactoryRefs.decrementAndGet() == 0) {
+                channelFactory.releaseExternalResources();
+                channelFactory = null;
+            }
+        }
     }
 }

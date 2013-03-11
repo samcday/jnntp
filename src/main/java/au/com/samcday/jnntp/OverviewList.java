@@ -10,7 +10,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class OverviewList implements Iterable<Overview> {
     private Iterator<Overview> iter;
     private List<Long> missingArticles;
-    private Long lastArticleNum;
+    private long lastArticleNum = -1;
     private LinkedBlockingQueue<Overview> items;
     private boolean done;
 
@@ -49,7 +49,7 @@ public class OverviewList implements Iterable<Overview> {
                     }
 
                     // TODO: is it safe to assume articles will arrive in order?
-                    if(lastArticleNum != null) {
+                    if(lastArticleNum > -1) {
                         for(long i = lastArticleNum + 1; i < item.getArticle() - 1; i++) {
                             missingArticles.add(i);
                         }
