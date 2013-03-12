@@ -23,9 +23,11 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,10 +42,10 @@ public class DefaultNntpClient implements NntpClient {
     private int port;
     private boolean ssl;
     private Channel channel;
-    private final ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
+    private ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
     private boolean canPost;
     private int connectTimeoutMillis;
-    private final Map<HandlerRegistration, BandwidthHandler> bandwidthHandlers;
+    private Map<HandlerRegistration, BandwidthHandler> bandwidthHandlers;
     private TrafficShapingHandler trafficHandler;
 
     public DefaultNntpClient(String host, int port, boolean ssl, int connectTimeoutMillis) {
@@ -52,7 +54,7 @@ public class DefaultNntpClient implements NntpClient {
         this.ssl = ssl;
         this.connectTimeoutMillis = connectTimeoutMillis;
         this.pipeline = new ConcurrentLinkedQueue<>();
-        this.bandwidthHandlers = new HashMap<>();
+        this.bandwidthHandlers = new ConcurrentHashMap<>();
         this.trafficHandler = new TrafficShapingHandler();
     }
 
@@ -223,9 +225,7 @@ public class DefaultNntpClient implements NntpClient {
             }
         };
 
-        synchronized (this.bandwidthHandlers) {
-            this.bandwidthHandlers.put(reg, handler);
-        }
+        this.bandwidthHandlers.put(reg, handler);
 
         return reg;
     }
@@ -269,8 +269,6 @@ public class DefaultNntpClient implements NntpClient {
 
     private static final HashedWheelTimer TICKER = new HashedWheelTimer(1, TimeUnit.SECONDS);
     private class TrafficShapingHandler extends ChannelTrafficShapingHandler {
-        private Executor executor;
-
         public TrafficShapingHandler() {
             super(new ObjectSizeEstimator() {
                 @Override
@@ -278,31 +276,14 @@ public class DefaultNntpClient implements NntpClient {
                     return o instanceof ChannelBuffer ? ChannelBuffer.class.cast(o).readableBytes() : 0;
                 }
             }, TICKER, 1000);
-            this.executor = Executors.newSingleThreadExecutor();
         }
 
         @Override
         protected void doAccounting(TrafficCounter counter) {
-            final long read = counter.getLastReadBytes();
-            final long write = counter.getLastWrittenBytes();
-            this.executor.execute(new TrafficNotifyingRunnable(read, write));
-        }
-    }
-
-    private class TrafficNotifyingRunnable implements Runnable {
-        private long read, written;
-
-        private TrafficNotifyingRunnable(long read, long written) {
-            this.read = read;
-            this.written = written;
-        }
-
-        @Override
-        public void run() {
-            synchronized (bandwidthHandlers) {
-                for(BandwidthHandler handler : bandwidthHandlers.values()) {
-                    handler.update(read, written);
-                }
+            long read = counter.getLastReadBytes();
+            long write = counter.getLastWrittenBytes();
+            for(BandwidthHandler handler : bandwidthHandlers.values()) {
+                handler.update(read, write);
             }
         }
     }
