@@ -1,5 +1,7 @@
 package au.com.samcday.jnntp;
 
+import au.com.samcday.jnntp.bandwidth.BandwidthHandler;
+import au.com.samcday.jnntp.bandwidth.HandlerRegistration;
 import au.com.samcday.jnntp.exceptions.NntpClientAuthenticationException;
 import au.com.samcday.jnntp.exceptions.NntpClientConnectionError;
 
@@ -23,4 +25,6 @@ public interface NntpClient {
     OverviewList overview(long start, long end);
 
     InputStream body(String messageId);
+
+    HandlerRegistration registerBandwidthHandler(BandwidthHandler handler);
 }

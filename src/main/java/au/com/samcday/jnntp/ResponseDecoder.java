@@ -13,7 +13,7 @@ import static au.com.samcday.jnntp.Util.pullAsciiIntFromBuffer;
  * handled by a downstream {@link org.jboss.netty.handler.codec.frame.LineBasedFrameDecoder}.
  */
 public class ResponseDecoder extends OneToOneDecoder {
-    private byte LINE_TERMINATOR = 0x2E;
+    private static final byte LINE_TERMINATOR = 0x2E;
 
     private ResponseStateNotifier responseStateNotifier;
     private boolean decodingMultiline;
