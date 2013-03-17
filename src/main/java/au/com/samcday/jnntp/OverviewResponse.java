@@ -49,7 +49,16 @@ public class OverviewResponse extends Response {
         int bytes = Integer.parseInt(parts.next());
         int lines = Integer.parseInt(parts.next());
 
-        this.items.offer(new Overview(articleNum, subject, from, date, msgId, ref, bytes, lines));
+        // TODO: proper overview.fmt handling.
+        Xref xref = null;
+        if(parts.hasNext()) {
+            String xrefStr = parts.next();
+            if(xrefStr.startsWith("Xref: ")) {
+                xref = Xref.parse(xrefStr.substring(6));
+            }
+        }
+
+        this.items.offer(new Overview(articleNum, subject, from, date, msgId, ref, bytes, lines, xref));
     }
 
     private Date parseDate(String str) {

@@ -13,9 +13,11 @@ public class Overview {
     private String references;
     private int bytes;
     private int lines;
+    private Xref xref;
 
     protected Overview() { }
-    public Overview(long article, String subject, String from, Date date, String messageId, String references, int bytes, int lines) {
+    public Overview(long article, String subject, String from, Date date, String messageId, String references,
+            int bytes, int lines, Xref xref) {
         this.article = article;
         this.subject = subject;
         this.from = from;
@@ -24,6 +26,7 @@ public class Overview {
         this.references = references;
         this.bytes = bytes;
         this.lines = lines;
+        this.xref = xref;
     }
 
     public long getArticle() {
@@ -56,5 +59,13 @@ public class Overview {
 
     public int getLines() {
         return lines;
+    }
+
+    public Xref getXref() {
+        return xref;
+    }
+
+    public void setXref(Xref xref) {
+        this.xref = xref;
     }
 }
