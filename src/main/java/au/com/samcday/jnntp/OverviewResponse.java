@@ -16,7 +16,8 @@ public class OverviewResponse extends Response {
     private static final List<DateTimeFormatter> DATE_FORMATS = Lists.newArrayList(
         DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss Z"),
         DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'").withZoneUTC(),
-        DateTimeFormat.forPattern("dd MMM yyyy HH:mm:ss 'GMT'").withZoneUTC()
+        DateTimeFormat.forPattern("dd MMM yyyy HH:mm:ss 'GMT'").withZoneUTC(),
+        DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss '0000'").withZoneUTC()
     );
 
     public OverviewList list;
