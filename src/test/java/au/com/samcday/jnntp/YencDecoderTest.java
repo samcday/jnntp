@@ -18,7 +18,7 @@ import java.util.Arrays;
 import static au.com.samcday.jnntp.ChannelBufferMatchers.exactChannelBuffer;
 import static org.junit.Assert.assertThat;
 
-public class YencDecoderTests {
+public class YencDecoderTest {
     @Test
     public void testDecode() throws IOException {
         EmbeddedChannel decoderEmbedder = new EmbeddedChannel(new LineBasedFrameDecoder(4096), new YencDecoder());

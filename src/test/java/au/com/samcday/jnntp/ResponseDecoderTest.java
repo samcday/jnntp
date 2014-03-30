@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ResponseDecoderTests {
+public class ResponseDecoderTest {
     private EmbeddedChannel embeddedChannel;
     private ResponseStateNotifier mockResponseStateNotifier;
 

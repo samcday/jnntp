@@ -7,7 +7,7 @@ import java.nio.charset.Charset;
 
 import static org.fest.assertions.api.Assertions.assertThat;
 
-public class ChannelBufferCharSequenceTests {
+public class ChannelBufferCharSequenceTest {
     @Test
     public void testBasic() {
         CharSequence seq = new ByteBufCharSequence(Unpooled.copiedBuffer("Hello, World!", Charset.defaultCharset()));
