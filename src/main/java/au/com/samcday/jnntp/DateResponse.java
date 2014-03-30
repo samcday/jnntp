@@ -1,6 +1,6 @@
 package au.com.samcday.jnntp;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
@@ -16,7 +16,7 @@ public class DateResponse extends Response {
     }
 
     @Override
-    public void process(ChannelBuffer buffer) {
+    public void process(ByteBuf buffer) {
         this.date = new DateTime(
             pullAsciiIntFromBuffer(buffer, 4), // yyyy
             pullAsciiIntFromBuffer(buffer, 2), // mm

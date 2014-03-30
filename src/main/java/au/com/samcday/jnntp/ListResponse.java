@@ -1,7 +1,7 @@
 package au.com.samcday.jnntp;
 
 import com.google.common.base.Charsets;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,11 +16,11 @@ public class ListResponse extends Response {
     }
 
     @Override
-    public void process(ChannelBuffer buffer) {
+    public void process(ByteBuf buffer) {
     }
 
     @Override
-    public void processLine(ChannelBuffer buffer) {
+    public void processLine(ByteBuf buffer) {
         int groupLen = buffer.bytesBefore((byte)0x20);
         String group = buffer.toString(0, groupLen, Charsets.UTF_8);
         buffer.skipBytes(groupLen + 1);

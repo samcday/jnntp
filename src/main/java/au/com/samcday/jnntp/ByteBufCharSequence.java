@@ -1,16 +1,16 @@
 package au.com.samcday.jnntp;
 
 import com.google.common.base.Charsets;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 /**
- * A wrapper to view a ChannelBuffer as a CharSequence. Will only work if underlying ChannelBuffer is UTF8-encoded.
+ * A wrapper to view a ByteBuf as a CharSequence. Will only work if underlying ByteBuf is UTF8-encoded.
  * Respects readerIndex.
  */
-public class ChannelBufferCharSequence implements CharSequence {
-    private final ChannelBuffer underlying;
+public class ByteBufCharSequence implements CharSequence {
+    private final ByteBuf underlying;
 
-    public ChannelBufferCharSequence(ChannelBuffer underlying) {
+    public ByteBufCharSequence(ByteBuf underlying) {
         this.underlying = underlying;
     }
 
@@ -26,7 +26,7 @@ public class ChannelBufferCharSequence implements CharSequence {
 
     @Override
     public CharSequence subSequence(int start, int end) {
-        return new ChannelBufferCharSequence(this.underlying.slice(this.underlying.readerIndex() + start,
+        return new ByteBufCharSequence(this.underlying.slice(this.underlying.readerIndex() + start,
             this.underlying.readerIndex() + (end - start)));
     }
 

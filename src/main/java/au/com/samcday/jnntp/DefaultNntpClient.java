@@ -5,17 +5,20 @@ import au.com.samcday.jnntp.bandwidth.HandlerRegistration;
 import au.com.samcday.jnntp.exceptions.*;
 import com.google.common.base.Charsets;
 import com.google.common.util.concurrent.Futures;
-import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.handler.codec.frame.LineBasedFrameDecoder;
-import org.jboss.netty.handler.codec.string.StringEncoder;
-import org.jboss.netty.handler.ssl.SslHandler;
-import org.jboss.netty.handler.traffic.ChannelTrafficShapingHandler;
-import org.jboss.netty.handler.traffic.TrafficCounter;
-import org.jboss.netty.util.HashedWheelTimer;
-import org.jboss.netty.util.ObjectSizeEstimator;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import io.netty.handler.codec.Delimiters;
+import io.netty.handler.codec.string.StringEncoder;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.traffic.ChannelTrafficShapingHandler;
+import io.netty.handler.traffic.TrafficCounter;
+import io.netty.util.concurrent.Future;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -28,21 +31,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class DefaultNntpClient implements NntpClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultNntpClient.class);
+
     static final String HANDLER_PROCESSOR = "nntpprocessor";
 
     private static final AtomicInteger channelFactoryRefs = new AtomicInteger(0);
-    private static ChannelFactory channelFactory = null;
+    private EventLoopGroup group = null;
 
     private String host;
     private int port;
     private boolean ssl;
     private Channel channel;
-    private ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
+    private final ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
     private boolean canPost;
     private int connectTimeoutMillis;
     private Map<HandlerRegistration, BandwidthHandler> bandwidthHandlers;
@@ -60,6 +63,8 @@ public class DefaultNntpClient implements NntpClient {
 
     @Override
     public void connect() throws NntpClientConnectionError {
+        LOGGER.info("Connecting to {} on port {}", this.host, this.port);
+
         // We'll be waiting for the connection message.
         NntpFuture<GenericResponse> welcomeFuture = new NntpFuture<>(Response.ResponseType.WELCOME);
         this.pipeline.add(welcomeFuture);
@@ -67,16 +72,19 @@ public class DefaultNntpClient implements NntpClient {
         // Connect to the server now.
         ChannelFuture future = this.initializeChannel(new InetSocketAddress(this.host, this.port));
         if(!future.isSuccess()) {
-            throw new NntpClientConnectionError(future.getCause());
+            throw new NntpClientConnectionError(future.cause());
         }
-        this.channel = future.getChannel();
+        this.channel = future.channel();
 
         if(this.ssl) {
-            ChannelFuture handshakeFuture = this.channel.getPipeline().get(SslHandler.class).handshake().awaitUninterruptibly();
+            LOGGER.info("Using SSL for new connection");
+            Future handshakeFuture = this.channel.pipeline().get(SslHandler.class).handshakeFuture().syncUninterruptibly();
             if(!handshakeFuture.isSuccess()) {
-                throw new NntpClientConnectionError(handshakeFuture.getCause());
+                throw new NntpClientConnectionError(handshakeFuture.cause());
             }
         }
+
+        LOGGER.info("Successfully connected.");
 
         GenericResponse response = Futures.getUnchecked(welcomeFuture);
         boolean temporarilyUnavailable = false;
@@ -101,53 +109,51 @@ public class DefaultNntpClient implements NntpClient {
     @Override
     public void disconnect() {
         // TODO: cancel all futures in pipeline and clean up the command pipeline.
-        this.channel.close().awaitUninterruptibly();
-        unrefChannelFactory();
-        this.trafficHandler.releaseExternalResources();
+        this.group.shutdownGracefully().syncUninterruptibly();
     }
 
     private ChannelFuture initializeChannel(InetSocketAddress addr) throws NntpClientConnectionError {
-        final SSLEngine engine;
+        final SSLEngine sslEngine;
         if(this.ssl) {
             try {
-                engine = this.initializeSsl();
-                engine.setUseClientMode(true);
+                sslEngine = this.initializeSsl();
+                sslEngine.setUseClientMode(true);
             }
             catch(NoSuchAlgorithmException|KeyManagementException ex) {
                 throw new NntpClientConnectionError(ex);
             }
         }
         else {
-            engine = null;
+            sslEngine = null;
         }
 
-        ClientBootstrap bootstrap = new ClientBootstrap(channelFactory());
-        bootstrap.setOption("connectTimeoutMillis", this.connectTimeoutMillis);
-        bootstrap.setOption("tcpNoDelay", true);
-        bootstrap.setOption("keepAlive", true);
-        bootstrap.setOption("reuseAddress", true);
+        this.group = new NioEventLoopGroup();
 
-        bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-            @Override
-            public ChannelPipeline getPipeline() throws Exception {
-                ChannelPipeline pipeline = Channels.pipeline();
+        Bootstrap bootstrap = new Bootstrap()
+            .group(this.group)
+            .channel(NioSocketChannel.class)
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, this.connectTimeoutMillis)
+            .option(ChannelOption.TCP_NODELAY, true)
+            .option(ChannelOption.SO_KEEPALIVE, true)
+            .option(ChannelOption.SO_REUSEADDR, true)
+            .handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                protected void initChannel(SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast("BANDWIDTH", trafficHandler);
 
-                pipeline.addLast("BANDWIDTH", trafficHandler);
+                    if (sslEngine != null) {
+                        ch.pipeline().addLast("ssl", new SslHandler(sslEngine));
+                    }
 
-                if(engine != null) {
-                    pipeline.addLast("ssl", new SslHandler(engine));
+                    ch.pipeline()
+                        .addLast("stringenc", new StringEncoder(Charsets.UTF_8))
+                        .addLast("lineframer", new DelimiterBasedFrameDecoder(4096, Delimiters.lineDelimiter()))
+                        .addLast("decoder", new ResponseDecoder(new ResponseStateNotifierImpl(DefaultNntpClient.this.pipeline)))
+                        .addLast(HANDLER_PROCESSOR, new ResponseProcessor(DefaultNntpClient.this.pipeline));
                 }
+            });
 
-                pipeline.addLast("stringenc", new StringEncoder(Charsets.UTF_8));
-                pipeline.addLast("lineframer", new LineBasedFrameDecoder(4096));
-                pipeline.addLast("decoder", new ResponseDecoder(new ResponseStateNotifierImpl(DefaultNntpClient.this.pipeline)));
-                pipeline.addLast(HANDLER_PROCESSOR, new ResponseProcessor(DefaultNntpClient.this.pipeline));
-
-                return pipeline;
-            }
-        });
-
-        return bootstrap.connect(addr).awaitUninterruptibly();
+        return bootstrap.connect(addr).syncUninterruptibly();
     }
 
     private SSLEngine initializeSsl() throws NoSuchAlgorithmException, KeyManagementException {
@@ -231,6 +237,8 @@ public class DefaultNntpClient implements NntpClient {
     }
 
     private <T extends Response> NntpFuture<T> sendCommand(Response.ResponseType type, String... args) {
+        LOGGER.debug("Sending command {}", type);
+
         NntpFuture future = new NntpFuture(type);
         synchronized (this.pipeline) {
             this.pipeline.add(future);
@@ -240,48 +248,21 @@ public class DefaultNntpClient implements NntpClient {
                 this.channel.write(args[i]);
             }
             this.channel.write("\r\n");
+            this.channel.flush();
         }
 
         return future;
     }
 
-    private static final ChannelFactory channelFactory() {
-        synchronized (channelFactoryRefs) {
-            if(channelFactory == null) {
-                channelFactory = new NioClientSocketChannelFactory(
-                    Executors.newCachedThreadPool(),
-                    Executors.newCachedThreadPool()
-                );
-            }
-            channelFactoryRefs.incrementAndGet();
-            return channelFactory;
-        }
-    }
-
-    private static final void unrefChannelFactory() {
-        synchronized (channelFactoryRefs) {
-            if(channelFactoryRefs.decrementAndGet() == 0) {
-                channelFactory.releaseExternalResources();
-                channelFactory = null;
-            }
-        }
-    }
-
-    private static final HashedWheelTimer TICKER = new HashedWheelTimer(1, TimeUnit.SECONDS);
     private class TrafficShapingHandler extends ChannelTrafficShapingHandler {
         public TrafficShapingHandler() {
-            super(new ObjectSizeEstimator() {
-                @Override
-                public int estimateSize(Object o) {
-                    return o instanceof ChannelBuffer ? ChannelBuffer.class.cast(o).readableBytes() : 0;
-                }
-            }, TICKER, 1000);
+            super(0, 0, 1000);
         }
 
         @Override
         protected void doAccounting(TrafficCounter counter) {
-            long read = counter.getLastReadBytes();
-            long write = counter.getLastWrittenBytes();
+            long read = counter.lastReadBytes();
+            long write = counter.lastWrittenBytes();
             for(BandwidthHandler handler : bandwidthHandlers.values()) {
                 handler.update(read, write);
             }

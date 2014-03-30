@@ -1,32 +1,32 @@
 package au.com.samcday.jnntp;
 
 import com.google.common.base.Charsets;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
 
 public class ChannelBufferMatchers {
     public static final ExactChannelBufferMatcher exactStringChannelBuffer(String expected) {
-        return exactChannelBuffer(ChannelBuffers.copiedBuffer(expected, Charsets.UTF_8));
+        return exactChannelBuffer(Unpooled.copiedBuffer(expected, Charsets.UTF_8));
     }
 
-    public static final ExactChannelBufferMatcher exactChannelBuffer(ChannelBuffer expected) {
+    public static final ExactChannelBufferMatcher exactChannelBuffer(ByteBuf expected) {
         return new ExactChannelBufferMatcher(expected);
     }
 
-    private static class ExactChannelBufferMatcher extends TypeSafeMatcher<ChannelBuffer> {
-        private ChannelBuffer expected;
+    private static class ExactChannelBufferMatcher extends TypeSafeMatcher<ByteBuf> {
+        private ByteBuf expected;
 
-        private ExactChannelBufferMatcher(ChannelBuffer expected) {
+        private ExactChannelBufferMatcher(ByteBuf expected) {
             this.expected = expected;
         }
 
         @Override
-        protected boolean matchesSafely(ChannelBuffer channelBuffer) {
+        protected boolean matchesSafely(ByteBuf channelBuffer) {
             if(channelBuffer.readableBytes() != this.expected.readableBytes()) return false;
 
-            while(channelBuffer.readable()) {
+            while(channelBuffer.isReadable()) {
                 if(channelBuffer.readByte() != this.expected.readByte()) {
                     return false;
                 }

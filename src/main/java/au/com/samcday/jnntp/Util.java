@@ -1,6 +1,7 @@
 package au.com.samcday.jnntp;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufProcessor;
 
 public class Util {
     /**
@@ -10,7 +11,7 @@ public class Util {
      * @param len
      * @return
      */
-    public static final int pullAsciiIntFromBuffer(ChannelBuffer buffer, int len) {
+    public static final int pullAsciiIntFromBuffer(ByteBuf buffer, int len) {
         int b;
         int num = 0;
         for(; len > 0; len--) {
@@ -23,7 +24,7 @@ public class Util {
         return num;
     }
 
-    public static final long pullAsciiLongFromBuffer(ChannelBuffer buffer, int len) {
+    public static final long pullAsciiLongFromBuffer(ByteBuf buffer, int len) {
         int b;
         long num = 0;
         for(; len > 0; len--) {
@@ -36,7 +37,11 @@ public class Util {
         return num;
     }
 
-    public static final long pullAsciiHexNumberFromBuffer(ChannelBuffer buffer, int len) {
+    public static final long pullAsciiHexNumberFromBuffer(ByteBuf buffer) {
+        return pullAsciiHexNumberFromBuffer(buffer, buffer.readableBytes());
+    }
+
+    public static final long pullAsciiHexNumberFromBuffer(ByteBuf buffer, int len) {
         int b;
         long num = 0;
         for(; len > 0; len--) {
@@ -58,5 +63,27 @@ public class Util {
         }
 
         return num;
+    }
+
+    public static class ByteBufStringIndexFinder implements ByteBufProcessor {
+        private char[] str;
+        private int strLen;
+        private int strPos;
+
+        public ByteBufStringIndexFinder(String str) {
+            this.str = str.toCharArray();
+            this.strLen = this.str.length;
+            this.strPos = 0;
+        }
+
+        @Override
+        public boolean process(byte value) throws Exception {
+            if (value == this.str[this.strPos]) {
+                this.strPos++;
+                return this.strPos < this.strLen;
+            }
+            this.strPos = 0;
+            return true;
+        }
     }
 }

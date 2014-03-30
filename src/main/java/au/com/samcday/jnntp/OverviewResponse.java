@@ -2,7 +2,7 @@ package au.com.samcday.jnntp;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
@@ -29,17 +29,17 @@ public class OverviewResponse extends Response {
     }
 
     @Override
-    public void process(ChannelBuffer buffer) {
+    public void process(ByteBuf buffer) {
     }
 
     @Override
-    public void processLine(ChannelBuffer buffer) {
+    public void processLine(ByteBuf buffer) {
         if(buffer == null) {
             this.items.offer(Overview.END);
             return;
         }
 
-        Iterator<String> parts = TAB_SPLITTER.split(new ChannelBufferCharSequence(buffer)).iterator();
+        Iterator<String> parts = TAB_SPLITTER.split(new ByteBufCharSequence(buffer)).iterator();
 
         long articleNum = Long.parseLong(parts.next());
         String subject = parts.next();

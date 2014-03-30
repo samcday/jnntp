@@ -1,18 +1,21 @@
 package au.com.samcday.jnntp;
 
 import au.com.samcday.yenc.YencDecoder;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.MessageEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
-import org.jboss.netty.handler.codec.compression.ZlibDecoder;
-import org.jboss.netty.handler.codec.compression.ZlibWrapper;
-import org.jboss.netty.handler.codec.frame.LineBasedFrameDecoder;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.codec.compression.JdkZlibDecoder;
+import io.netty.handler.codec.compression.ZlibWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class ResponseProcessor extends SimpleChannelHandler {
+public class ResponseProcessor extends SimpleChannelInboundHandler<Object> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ResponseProcessor.class);
+
     private ConcurrentLinkedQueue<NntpFuture<?>> pipeline;
 
     private Response currentResponse;
@@ -22,9 +25,10 @@ public class ResponseProcessor extends SimpleChannelHandler {
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-        if(e.getMessage() instanceof RawResponseMessage) {
-            RawResponseMessage rawResponse = (RawResponseMessage)e.getMessage();
+    public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+        if(msg instanceof RawResponseMessage) {
+            RawResponseMessage rawResponse = (RawResponseMessage)msg;
+            LOGGER.trace("Got raw response message with code {}", rawResponse.code);
 
             // TODO: error code handling here.
 
@@ -33,13 +37,13 @@ public class ResponseProcessor extends SimpleChannelHandler {
             response.setCode(rawResponse.code);
             response.process(rawResponse.buffer);
 
-            ChannelPipeline pipeline = ctx.getPipeline();
+            ChannelPipeline pipeline = ctx.pipeline();
             if(type == Response.ResponseType.XZVER || type == Response.ResponseType.BODY) {
                 pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "ydecode", new YencDecoder());
             }
 
             if(type == Response.ResponseType.XZVER) {
-                pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "zlib", new ZlibDecoder(ZlibWrapper.NONE));
+                pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "zlib", new JdkZlibDecoder(ZlibWrapper.NONE));
                 pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "lineframeragain", new LineBasedFrameDecoder(4096));
             }
 
@@ -53,13 +57,13 @@ public class ResponseProcessor extends SimpleChannelHandler {
             }
             future.onResponse(response);
         }
-        else if(e.getMessage() == MultilineEndMessage.INSTANCE) {
+        else if(msg == MultilineEndMessage.INSTANCE) {
             NntpFuture future = this.pipeline.remove();
             this.currentResponse.processLine(null);
             this.currentResponse = null;
 
             Response.ResponseType type = future.getType();
-            ChannelPipeline pipeline = ctx.getPipeline();
+            ChannelPipeline pipeline = ctx.pipeline();
             if(type == Response.ResponseType.XZVER || type == Response.ResponseType.BODY) {
                 pipeline.remove("ydecode");
             }
@@ -69,7 +73,7 @@ public class ResponseProcessor extends SimpleChannelHandler {
             }
         }
         else if(this.currentResponse != null) {
-            this.currentResponse.processLine((ChannelBuffer)e.getMessage());
+            this.currentResponse.processLine((ByteBuf)msg);
         }
     }
 

@@ -1,18 +1,19 @@
 package au.com.samcday.jnntp;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.handler.codec.oneone.OneToOneDecoder;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.MessageToMessageDecoder;
+
+import java.util.List;
 
 import static au.com.samcday.jnntp.Util.pullAsciiIntFromBuffer;
 
 /**
  * This decoder handles the raw responses from the server, and relies on an injected {@link ResponseStateNotifier}
  * to determine if it should parse a single line response, or a multiline one. It assumes framing has already been
- * handled by a downstream {@link org.jboss.netty.handler.codec.frame.LineBasedFrameDecoder}.
+ * handled by a downstream {@link io.netty.handler.codec.LineBasedFrameDecoder}.
  */
-public class ResponseDecoder extends OneToOneDecoder {
+public class ResponseDecoder extends MessageToMessageDecoder<ByteBuf> {
     private static final byte LINE_TERMINATOR = 0x2E;
 
     private ResponseStateNotifier responseStateNotifier;
@@ -23,20 +24,19 @@ public class ResponseDecoder extends OneToOneDecoder {
     }
 
     @Override
-    protected Object decode(ChannelHandlerContext ctx, Channel channel, Object msg) throws Exception {
-        if(!(msg instanceof ChannelBuffer)) return msg;
-        ChannelBuffer buffer = (ChannelBuffer)msg;
-
+    protected void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> out) throws Exception {
         if(this.decodingMultiline) {
             if(buffer.getByte(buffer.readerIndex()) == LINE_TERMINATOR) {
                 buffer.skipBytes(1);
-                if(!buffer.readable()) {
+                if(!buffer.isReadable()) {
                     this.decodingMultiline = false;
-                    return MultilineEndMessage.INSTANCE;
+                    out.add(MultilineEndMessage.INSTANCE);
+                    return;
                 }
             }
 
-            return buffer.slice();
+            out.add(buffer.retain());
+            return;
         }
 
         int code = pullAsciiIntFromBuffer(buffer, 3);
@@ -44,6 +44,6 @@ public class ResponseDecoder extends OneToOneDecoder {
 
         this.decodingMultiline = this.responseStateNotifier.isMultiline(code);
 
-        return new RawResponseMessage(code, buffer.slice(), this.decodingMultiline);
+        out.add(new RawResponseMessage(code, buffer.retain(), this.decodingMultiline));
     }
 }

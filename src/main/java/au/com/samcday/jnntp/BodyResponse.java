@@ -1,7 +1,7 @@
 package au.com.samcday.jnntp;
 
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 public class BodyResponse extends Response {
     public CompositeChannelBufferInputStream stream;
@@ -11,12 +11,12 @@ public class BodyResponse extends Response {
     }
 
     @Override
-    public void process(ChannelBuffer buffer) {}
+    public void process(ByteBuf buffer) {}
 
     @Override
-    public void processLine(ChannelBuffer buffer) {
+    public void processLine(ByteBuf buffer) {
         if(buffer == null) {
-            this.stream.addData(ChannelBuffers.EMPTY_BUFFER);
+            this.stream.addData(Unpooled.EMPTY_BUFFER);
         }
         else {
             this.stream.addData(buffer);

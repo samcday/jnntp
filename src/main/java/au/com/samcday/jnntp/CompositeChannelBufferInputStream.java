@@ -1,14 +1,14 @@
 package au.com.samcday.jnntp;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class CompositeChannelBufferInputStream extends InputStream {
-    private LinkedBlockingQueue<ChannelBuffer> buffers;
-    private ChannelBuffer current;
+    private LinkedBlockingQueue<ByteBuf> buffers;
+    private ByteBuf current;
     private boolean eof = false;
 
     public CompositeChannelBufferInputStream() {
@@ -20,7 +20,7 @@ public class CompositeChannelBufferInputStream extends InputStream {
         if(this.eof) return -1;
 
         // If current buffer is finished, throw it away and we'll get another.
-        if(this.current != null && !this.current.readable()) {
+        if(this.current != null && !this.current.isReadable()) {
             this.current = null;
         }
 
@@ -35,7 +35,7 @@ public class CompositeChannelBufferInputStream extends InputStream {
 
         // Since we already checked for empty buffers earlier, getting one here means that async thread handed us an
         // empty buffer, which means we're done.
-        if(!this.current.readable()) {
+        if(!this.current.isReadable()) {
             this.eof = true;
             return -1;
         }
@@ -43,7 +43,7 @@ public class CompositeChannelBufferInputStream extends InputStream {
         return this.current.readUnsignedByte();
     }
 
-    public void addData(ChannelBuffer buffer) {
+    public void addData(ByteBuf buffer) {
         this.buffers.offer(buffer);
     }
 }

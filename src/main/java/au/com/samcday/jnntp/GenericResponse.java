@@ -1,13 +1,13 @@
 package au.com.samcday.jnntp;
 
 import com.google.common.base.Charsets;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public class GenericResponse extends Response {
     private String message;
 
     @Override
-    public void process(ChannelBuffer buffer) {
+    public void process(ByteBuf buffer) {
         this.message = buffer.toString(Charsets.UTF_8);
     }
 

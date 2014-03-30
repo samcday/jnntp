@@ -1,6 +1,6 @@
 package au.com.samcday.jnntp;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 public abstract class Response {
     protected int code;
@@ -16,11 +16,11 @@ public abstract class Response {
         return code;
     }
 
-    public void processLine(ChannelBuffer buffer) {
+    public void processLine(ByteBuf buffer) {
         // Given empty implementation as it is not mandatory.
     }
 
-    public abstract void process(ChannelBuffer buffer);
+    public abstract void process(ByteBuf buffer);
 
     public static enum ResponseType {
         WELCOME,

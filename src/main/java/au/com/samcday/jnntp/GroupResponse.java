@@ -1,6 +1,6 @@
 package au.com.samcday.jnntp;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import static au.com.samcday.jnntp.Util.pullAsciiLongFromBuffer;
 
@@ -8,7 +8,7 @@ public class GroupResponse extends Response {
     public GroupInfo info;
 
     @Override
-    public void process(ChannelBuffer buffer) {
+    public void process(ByteBuf buffer) {
         this.info = new GroupInfo();
 
         int countLen = buffer.bytesBefore((byte)0x20);

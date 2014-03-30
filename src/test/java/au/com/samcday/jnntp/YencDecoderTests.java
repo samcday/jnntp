@@ -3,13 +3,13 @@ package au.com.samcday.jnntp;
 import au.com.samcday.yenc.YencChecksumFailureException;
 import au.com.samcday.yenc.YencDecoder;
 import com.google.common.io.Resources;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.codec.DecoderException;
+import io.netty.handler.codec.LineBasedFrameDecoder;
 import org.apache.commons.io.IOUtils;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBufferOutputStream;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.handler.codec.embedder.CodecEmbedderException;
-import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
-import org.jboss.netty.handler.codec.frame.LineBasedFrameDecoder;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -21,38 +21,37 @@ import static org.junit.Assert.assertThat;
 public class YencDecoderTests {
     @Test
     public void testDecode() throws IOException {
-        DecoderEmbedder<ChannelBuffer> decoderEmbedder = new DecoderEmbedder<>(new LineBasedFrameDecoder(4096), new YencDecoder());
+        EmbeddedChannel decoderEmbedder = new EmbeddedChannel(new LineBasedFrameDecoder(4096), new YencDecoder());
 
-        ChannelBuffer encoded = ChannelBuffers.dynamicBuffer();
-        IOUtils.copy(Resources.getResource("lorem-ipsum.ync").openStream(), new ChannelBufferOutputStream(encoded));
+        ByteBuf encoded = Unpooled.buffer();
+        IOUtils.copy(Resources.getResource("lorem-ipsum.ync").openStream(), new ByteBufOutputStream(encoded));
 
-        ChannelBuffer original = ChannelBuffers.dynamicBuffer();
-        IOUtils.copy(Resources.getResource("lorem-ipsum").openStream(), new ChannelBufferOutputStream(original));
+        ByteBuf original = Unpooled.buffer();
+        IOUtils.copy(Resources.getResource("lorem-ipsum").openStream(), new ByteBufOutputStream(original));
 
-        decoderEmbedder.offer(encoded);
+        decoderEmbedder.writeInbound(encoded);
         decoderEmbedder.finish();
 
-
-        Object[] result = decoderEmbedder.pollAll();
-        ChannelBuffer[] buffers = Arrays.copyOf(result, result.length, ChannelBuffer[].class);
-        assertThat(ChannelBuffers.copiedBuffer(buffers), exactChannelBuffer(original));
+        Object[] result = decoderEmbedder.inboundMessages().toArray();
+        ByteBuf[] buffers = Arrays.copyOf(result, result.length, ByteBuf[].class);
+        assertThat(Unpooled.copiedBuffer(buffers), exactChannelBuffer(original));
     }
 
     @Test(expected = YencChecksumFailureException.class)
     public void testChecksumFailure() throws Throwable {
-        DecoderEmbedder<ChannelBuffer> decoderEmbedder = new DecoderEmbedder<>(new LineBasedFrameDecoder(4096), new YencDecoder());
+        EmbeddedChannel decoderEmbedder = new EmbeddedChannel(new LineBasedFrameDecoder(4096), new YencDecoder());
 
-        ChannelBuffer encoded = ChannelBuffers.dynamicBuffer();
-        IOUtils.copy(Resources.getResource("lorem-ipsum-invalid-checksum.ync").openStream(), new ChannelBufferOutputStream(encoded));
+        ByteBuf encoded = Unpooled.buffer();
+        IOUtils.copy(Resources.getResource("lorem-ipsum-invalid-checksum.ync").openStream(), new ByteBufOutputStream(encoded));
 
-        ChannelBuffer original = ChannelBuffers.dynamicBuffer();
-        IOUtils.copy(Resources.getResource("lorem-ipsum").openStream(), new ChannelBufferOutputStream(original));
+        ByteBuf original = Unpooled.buffer();
+        IOUtils.copy(Resources.getResource("lorem-ipsum").openStream(), new ByteBufOutputStream(original));
 
         try {
-            decoderEmbedder.offer(encoded);
+            decoderEmbedder.writeInbound(encoded);
             decoderEmbedder.finish();
         }
-        catch(CodecEmbedderException cee) {
+        catch(DecoderException cee) {
             throw cee.getCause();
         }
     }

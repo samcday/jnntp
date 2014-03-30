@@ -1,9 +1,9 @@
 package au.com.samcday.jnntp;
 
 import com.google.common.base.Charsets;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,22 +15,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ResponseDecoderTests {
-    private DecoderEmbedder<Object> decoderEmbedder;
+    private EmbeddedChannel embeddedChannel;
     private ResponseStateNotifier mockResponseStateNotifier;
 
     @Before
     public void setup() {
         this.mockResponseStateNotifier = mock(ResponseStateNotifier.class);
-        this.decoderEmbedder = new DecoderEmbedder<>(
+        this.embeddedChannel = new EmbeddedChannel(
             new ResponseDecoder(this.mockResponseStateNotifier));
     }
 
     @Test
     public void testBasicDecode() {
-        assertTrue(this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer("200 This is a simple response", Charsets.UTF_8)));
-        assertTrue(this.decoderEmbedder.finish());
-        assertThat(this.decoderEmbedder.peek(), instanceOf(RawResponseMessage.class));
-        RawResponseMessage raw = (RawResponseMessage)this.decoderEmbedder.poll();
+        assertTrue(this.embeddedChannel.writeInbound(Unpooled.copiedBuffer("200 This is a simple response", Charsets.UTF_8)));
+        assertTrue(this.embeddedChannel.finish());
+        Object outbound = this.embeddedChannel.readInbound();
+        assertThat(outbound, instanceOf(RawResponseMessage.class));
+        RawResponseMessage raw = (RawResponseMessage)outbound;
         assertEquals(200, raw.code);
         assertThat(raw.buffer, exactStringChannelBuffer("This is a simple response"));
     }
@@ -39,39 +40,42 @@ public class ResponseDecoderTests {
     public void testMultilineDecode() {
         when(this.mockResponseStateNotifier.isMultiline(200)).thenReturn(true);
 
-        this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer("200 Multiline kgo", Charsets.UTF_8));
-        this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer("Line 1", Charsets.UTF_8));
-        this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer("Line 2", Charsets.UTF_8));
-        this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer(".", Charsets.UTF_8));
-        this.decoderEmbedder.finish();
+        this.embeddedChannel.writeInbound(Unpooled.copiedBuffer("200 Multiline kgo", Charsets.UTF_8));
+        this.embeddedChannel.writeInbound(Unpooled.copiedBuffer("Line 1", Charsets.UTF_8));
+        this.embeddedChannel.writeInbound(Unpooled.copiedBuffer("Line 2", Charsets.UTF_8));
+        this.embeddedChannel.writeInbound(Unpooled.copiedBuffer(".", Charsets.UTF_8));
+        this.embeddedChannel.finish();
 
         // First thing out should be a RawResponseMessage.
-        assertThat(this.decoderEmbedder.peek(), instanceOf(RawResponseMessage.class));
-        RawResponseMessage raw = (RawResponseMessage)this.decoderEmbedder.poll();
+        Object outbound = this.embeddedChannel.readInbound();
+        assertThat(outbound, instanceOf(RawResponseMessage.class));
+        RawResponseMessage raw = (RawResponseMessage)outbound;
         assertThat(raw.code, is(200));
         assertTrue(raw.multiline);
         assertThat(raw.buffer, exactStringChannelBuffer("Multiline kgo"));
 
-        assertThat(this.decoderEmbedder.peek(), instanceOf(ChannelBuffer.class));
-        assertThat((ChannelBuffer)this.decoderEmbedder.poll(), exactStringChannelBuffer("Line 1"));
+        outbound = this.embeddedChannel.readInbound();
+        assertThat(outbound, instanceOf(ByteBuf.class));
+        assertThat((ByteBuf)outbound, exactStringChannelBuffer("Line 1"));
 
-        assertThat(this.decoderEmbedder.peek(), instanceOf(ChannelBuffer.class));
-        assertThat((ChannelBuffer)this.decoderEmbedder.poll(), exactStringChannelBuffer("Line 2"));
+        outbound = this.embeddedChannel.readInbound();
+        assertThat(outbound, instanceOf(ByteBuf.class));
+        assertThat((ByteBuf)outbound, exactStringChannelBuffer("Line 2"));
 
-        assertThat(this.decoderEmbedder.poll(), is((Object) MultilineEndMessage.INSTANCE));
+        assertThat(this.embeddedChannel.readInbound(), is((Object) MultilineEndMessage.INSTANCE));
     }
 
     @Test
     public void testDotStuffedMultilineDecode() {
         when(this.mockResponseStateNotifier.isMultiline(200)).thenReturn(true);
 
-        this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer("200 Multiline kgo", Charsets.UTF_8));
-        this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer("....", Charsets.UTF_8));
-        this.decoderEmbedder.offer(ChannelBuffers.copiedBuffer(".", Charsets.UTF_8));
-        this.decoderEmbedder.finish();
+        this.embeddedChannel.writeInbound(Unpooled.copiedBuffer("200 Multiline kgo", Charsets.UTF_8));
+        this.embeddedChannel.writeInbound(Unpooled.copiedBuffer("....", Charsets.UTF_8));
+        this.embeddedChannel.writeInbound(Unpooled.copiedBuffer(".", Charsets.UTF_8));
+        this.embeddedChannel.finish();
 
-        this.decoderEmbedder.poll();
+        this.embeddedChannel.readInbound();
 
-        assertThat((ChannelBuffer)this.decoderEmbedder.poll(), exactStringChannelBuffer("..."));
+        assertThat((ByteBuf) this.embeddedChannel.readInbound(), exactStringChannelBuffer("..."));
     }
 }
