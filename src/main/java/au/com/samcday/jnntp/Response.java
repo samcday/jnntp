@@ -22,15 +22,4 @@ public abstract class Response {
 
     public abstract void process(ByteBuf buffer);
 
-    public static enum ResponseType {
-        WELCOME,
-        AUTHINFO,
-        DATE,
-        LIST,
-        GROUP,
-        OVER,
-        XOVER,
-        XZVER,
-        BODY;
-    }
 }

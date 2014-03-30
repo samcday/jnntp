@@ -32,17 +32,17 @@ public class ResponseProcessor extends SimpleChannelInboundHandler<Object> {
 
             // TODO: error code handling here.
 
-            Response.ResponseType type = this.pipeline.peek().getType();
+            Command type = this.pipeline.peek().getType();
             Response response = this.constructResponse(type);
             response.setCode(rawResponse.code);
             response.process(rawResponse.buffer);
 
             ChannelPipeline pipeline = ctx.pipeline();
-            if(type == Response.ResponseType.XZVER || type == Response.ResponseType.BODY) {
+            if(type == Command.XZVER || type == Command.BODY) {
                 pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "ydecode", new YencDecoder());
             }
 
-            if(type == Response.ResponseType.XZVER) {
+            if(type == Command.XZVER) {
                 pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "zlib", new JdkZlibDecoder(ZlibWrapper.NONE));
                 pipeline.addBefore(DefaultNntpClient.HANDLER_PROCESSOR, "lineframeragain", new LineBasedFrameDecoder(4096));
             }
@@ -62,12 +62,12 @@ public class ResponseProcessor extends SimpleChannelInboundHandler<Object> {
             this.currentResponse.processLine(null);
             this.currentResponse = null;
 
-            Response.ResponseType type = future.getType();
+            Command type = future.getType();
             ChannelPipeline pipeline = ctx.pipeline();
-            if(type == Response.ResponseType.XZVER || type == Response.ResponseType.BODY) {
+            if(type == Command.XZVER || type == Command.BODY) {
                 pipeline.remove("ydecode");
             }
-            if(type == Response.ResponseType.XZVER) {
+            if(type == Command.XZVER) {
                 pipeline.remove("zlib");
                 pipeline.remove("lineframeragain");
             }
@@ -77,7 +77,7 @@ public class ResponseProcessor extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private Response constructResponse(Response.ResponseType type) {
+    private Response constructResponse(Command type) {
         switch(type) {
             case WELCOME:
             case AUTHINFO:

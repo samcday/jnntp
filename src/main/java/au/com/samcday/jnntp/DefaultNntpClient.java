@@ -66,7 +66,7 @@ public class DefaultNntpClient implements NntpClient {
         LOGGER.info("Connecting to {} on port {}", this.host, this.port);
 
         // We'll be waiting for the connection message.
-        NntpFuture<GenericResponse> welcomeFuture = new NntpFuture<>(Response.ResponseType.WELCOME);
+        NntpFuture<GenericResponse> welcomeFuture = new NntpFuture<>(Command.WELCOME);
         this.pipeline.add(welcomeFuture);
 
         // Connect to the server now.
@@ -164,7 +164,7 @@ public class DefaultNntpClient implements NntpClient {
 
     @Override
     public void authenticate(String username, String password) throws NntpClientAuthenticationException {
-        NntpFuture<GenericResponse> future = this.sendCommand(Response.ResponseType.AUTHINFO, "USER", username);
+        NntpFuture<GenericResponse> future = this.sendCommand(Command.AUTHINFO, "USER", username);
         GenericResponse resp = Futures.getUnchecked(future);
         if(resp.getCode() == 281) {
             // Well ... that was easy.
@@ -172,7 +172,7 @@ public class DefaultNntpClient implements NntpClient {
         }
 
         if(resp.getCode() == 381) {
-            future = this.sendCommand(Response.ResponseType.AUTHINFO, "PASS", password);
+            future = this.sendCommand(Command.AUTHINFO, "PASS", password);
             resp = Futures.getUnchecked(future);
             if(resp.getCode() == 281) {
                 return;
@@ -192,33 +192,33 @@ public class DefaultNntpClient implements NntpClient {
      */
     @Override
     public Date date() {
-        NntpFuture<DateResponse> future = this.sendCommand(Response.ResponseType.DATE);
+        NntpFuture<DateResponse> future = this.sendCommand(Command.DATE);
         DateResponse response = Futures.getUnchecked(future);
         return response.getDate();
     }
 
     @Override
     public List<GroupListItem> list() {
-        NntpFuture<ListResponse> future = this.sendCommand(Response.ResponseType.LIST);
+        NntpFuture<ListResponse> future = this.sendCommand(Command.LIST);
         ListResponse response = Futures.getUnchecked(future);
         return response.getItems();
     }
 
     @Override
     public GroupInfo group(String name) {
-        NntpFuture<GroupResponse> future = this.sendCommand(Response.ResponseType.GROUP, name);
+        NntpFuture<GroupResponse> future = this.sendCommand(Command.GROUP, name);
         return Futures.getUnchecked(future).info;
     }
 
     @Override
     public OverviewList overview(long start, long end) {
-        NntpFuture<OverviewResponse> future = this.sendCommand(Response.ResponseType.XZVER, Long.toString(start) + "-" + Long.toString(end));
+        NntpFuture<OverviewResponse> future = this.sendCommand(Command.XZVER, Long.toString(start) + "-" + Long.toString(end));
         return Futures.getUnchecked(future).list;
     }
 
     @Override
     public InputStream body(String messageId) {
-        NntpFuture<BodyResponse> future = this.sendCommand(Response.ResponseType.BODY, messageId);
+        NntpFuture<BodyResponse> future = this.sendCommand(Command.BODY, messageId);
         return Futures.getUnchecked(future).stream;
     }
 
@@ -236,7 +236,7 @@ public class DefaultNntpClient implements NntpClient {
         return reg;
     }
 
-    private <T extends Response> NntpFuture<T> sendCommand(Response.ResponseType type, String... args) {
+    private <T extends Response> NntpFuture<T> sendCommand(Command type, String... args) {
         LOGGER.debug("Sending command {}", type);
 
         NntpFuture future = new NntpFuture(type);

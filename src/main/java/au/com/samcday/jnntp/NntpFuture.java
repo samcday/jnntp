@@ -5,9 +5,9 @@ import java.util.concurrent.*;
 public class NntpFuture<T extends Response> implements Future<T> {
     private CountDownLatch latch;
     private T response;
-    private Response.ResponseType type;
+    private Command type;
 
-    public NntpFuture(Response.ResponseType type) {
+    public NntpFuture(Command type) {
         this.type = type;
         this.latch = new CountDownLatch(1);
     }
@@ -39,7 +39,7 @@ public class NntpFuture<T extends Response> implements Future<T> {
         return this.response;
     }
 
-    public Response.ResponseType getType() {
+    public Command getType() {
         return type;
     }
 
