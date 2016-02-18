@@ -5,3 +5,7 @@
 High performance NNTP client, built on top of Netty.
 
 Only a subset of the protocol has been implemented (just the bits I need for my bincrawl project).
+
+## License
+
+[MIT](LICENSE)
